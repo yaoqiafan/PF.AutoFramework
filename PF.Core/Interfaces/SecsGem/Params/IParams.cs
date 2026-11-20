@@ -102,6 +102,13 @@ namespace PF.Core.Interfaces.SecsGem.Params
         /// </summary>
         /// <param name="paramType">要保存的参数类型枚举</param>
         void SaveParam(ParamType paramType);
+
+        /// <summary>
+        /// 用新的系统参数整体替换内存中的系统参数，并写入 SECS 配置库的 SystemConfigs 表。
+        /// 供本机通道收到服务下发的链路配置时调用；写库失败时内存仍已更新，返回 <c>false</c>。
+        /// </summary>
+        /// <param name="param">新的系统参数</param>
+        Task<bool> ReplaceSystemParamAsync(PF.Core.Entities.SecsGem.Params.SecsGemSystemParam param);
     }
 
     /// <summary>

@@ -76,6 +76,13 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             ImportFormulaParamCommand = new DelegateCommand(async () => await ExecuteImportFormulaParamToDbAsync());
             RefreshDbViewCommand = new DelegateCommand(async () => await ExecuteRefreshDbViewAsync());
 
+            // 服务下发链路配置后刷新系统参数显示；页面一直存活，订阅不用退
+            if (_manager.SecsGemClient != null)
+            {
+                _manager.SecsGemClient.LinkConfigReceived += (_, _) => { if (_selectedParamIndex == 0) LoadParamRows(0); };
+                _manager.SecsGemClient.ServiceHandshakeChanged += (_, _) => { if (_selectedParamIndex == 0) LoadParamRows(0); };
+            }
+
             AddVidCommand = new DelegateCommand(() => VidRows.Add(new VidRowViewModel { Description = "新VID", DataType = "U4", Value = "0", Comment = string.Empty }));
             DeleteVidCommand = new DelegateCommand(() => { if (SelectedVidRow != null) VidRows.Remove(SelectedVidRow); });
             AddCeidCommand = new DelegateCommand(() => CeidRows.Add(new CeidRowViewModel { Description = "新CEID", LinkReportIDs = string.Empty, Comment = string.Empty }));
@@ -222,9 +229,11 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             var sys = _manager.ParamsManager.GetParamOrDefault<SecsGemSystemParam>(ParamType.System, null);
             if (sys == null)
             {
-                ParamRows.Add(new ParamRowViewModel { Name = "提示", Value = "系统参数为空，请先初始化或导入", DataType = "-", Description = "" });
+                ParamRows.Add(new ParamRowViewModel { Name = "提示", Value = SystemParamsManagedByService ? "系统参数为空，等待 SECS 服务下发" : "系统参数为空，请先初始化或导入", DataType = "-", Description = "" });
                 return;
             }
+            if (SystemParamsManagedByService)
+                ParamRows.Add(new ParamRowViewModel { Name = "提示", Value = ManagedHint, DataType = "-", Description = "只读" });
             ParamRows.Add(new ParamRowViewModel { Name = "ServiceName", Value = sys.ServiceName, DataType = "String", Description = "服务名称" });
             ParamRows.Add(new ParamRowViewModel { Name = "IPAddress", Value = sys.IPAddress, DataType = "String", Description = "连接 IP 地址" });
             ParamRows.Add(new ParamRowViewModel { Name = "Port", Value = sys.Port.ToString(), DataType = "Int", Description = "端口号" });
@@ -439,9 +448,26 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
             }
         }
 
+        /// <summary>
+        /// 系统参数（链路配置）是否由本机 SECS 服务管理（设计稿 §9）。为 true 时服务在主程序每次接入时下发并覆盖本地 SystemConfigs，
+        /// 本地修改会被冲掉，因此这里的保存 / 导入一律拦下；旧版服务仍按原方式由本页维护。
+        /// </summary>
+        private bool SystemParamsManagedByService => _manager.SecsGemClient?.LinkConfigManagedByService == true;
+
+        private const string ManagedHint = "由 SECS 服务管理，请在 PF SecsGem 托盘「管理界面 → 链路配置」中修改";
+
+        private bool BlockIfManagedByService()
+        {
+            if (!SystemParamsManagedByService) return false;
+            MessageBox.Show($"系统参数（Host 地址、端口、DeviceID、超时、MDLN / SOFTREV）{ManagedHint}。\n\n服务会在主程序每次接入时下发配置，在这里修改会被覆盖。",
+                "系统参数只读", MessageBoxButton.OK, MessageBoxImage.Information);
+            return true;
+        }
+
         private async Task ExecuteSaveParamAsync()
         {
             var paramType = _selectedParamIndex switch { 1 => ParamType.Validate, 2 => ParamType.Formula, _ => ParamType.System };
+            if (paramType == ParamType.System && BlockIfManagedByService()) return;
             if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, $"保存 SECS/GEM 参数（{paramType}）")) return;
             try
             {
@@ -476,6 +502,7 @@ namespace PF.Modules.SecsGem.ViewModels.SubViewModels
 
         private async Task ExecuteImportSystemParamToDbAsync()
         {
+            if (BlockIfManagedByService()) return;
             var dlg = new OpenFileDialog { Title = "导入系统参数 (JSON)", Filter = "JSON 文件 (*.json)|*.json" };
             if (dlg.ShowDialog() != true) return;
             if (!await SecsConfigSafety.EnsureCanModifyAsync(MessageService, _manager, "导入系统参数（Host 地址、端口、DeviceID）")) return;

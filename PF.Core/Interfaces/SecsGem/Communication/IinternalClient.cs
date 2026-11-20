@@ -70,5 +70,26 @@ namespace PF.Core.Interfaces.SecsGem.Communication
         /// 接收到SecsdGem主机断开连接时触发
         /// </summary>
         event EventHandler SecsGemHostDisconnected;
+
+        /// <summary>
+        /// 与本机 SECS 服务的协议握手状态（见 <see cref="PF.Core.Constants.SecsGemLocalChannel"/>）。
+        /// 本机通道每次重连都会重新握手。
+        /// </summary>
+        PF.Core.Constants.SecsGemServiceHandshake ServiceHandshake { get; }
+
+        /// <summary>服务最近一次发来的握手内容；旧版服务或尚未握手时为 null。</summary>
+        PF.Core.Constants.SecsGemLocalHello? ServiceHello { get; }
+
+        /// <summary>
+        /// 链路配置是否由服务管理：为 true 时系统参数以服务下发为准（每次接入都会覆盖本地 SystemConfigs），
+        /// 主程序侧不应再编辑系统参数。旧版服务为 false，沿用本地 SystemConfigs。
+        /// </summary>
+        bool LinkConfigManagedByService { get; }
+
+        /// <summary>握手状态变化时触发（握手成功 / 不兼容 / 判定为旧版服务 / 断线回到 Pending）。</summary>
+        event EventHandler ServiceHandshakeChanged;
+
+        /// <summary>收到服务下发的链路配置并已写入本地系统参数后触发。</summary>
+        event EventHandler LinkConfigReceived;
     }
 }

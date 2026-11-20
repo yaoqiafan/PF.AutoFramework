@@ -81,6 +81,11 @@ PF.SecsGem（独立项目，单独解决方案与安装包）
 
 **为什么必须做**：服务独立后，它和主程序分属两个发布节奏，新旧混搭在现场必然出现；没有握手时表现为"Host 连上了但不回报文"这类难查的问题。
 
+**实施（2026-11-20，框架 PF.Core / PF.Infrastructure 2.1.0 + 服务 2.1.0）**：
+- 帧定义只在 `PF.Core.Constants.SecsGemLocalChannel`：握手帧 `0x03`、链路配置帧 `0x04`，格式 **[命令][JSON][0x0A]**——与上文草案的"[命令][4 字节长度][JSON]"不同，原因：旧版两端遇到不认识的命令字节都是丢一个字节重新同步，4 字节大端长度的首字节几乎总是 `0x00`，旧端会把它认成报文帧、按错误长度一直等，吞掉后续所有报文。JSON 用默认转义只含可打印 ASCII，旧端逐字节丢弃即可越过整帧（已用 git HEAD 的旧缓冲逻辑按 1 / 3 / 7 / 4096 字节分段验证）。
+- **双向握手**：主程序也发握手帧（协议版本、程序版本、项目名），托盘概览 / 诊断页可见；旧版服务逐字节丢弃，无害。
+- 主程序 2 秒（`HelloTimeout`）没收到服务握手判为旧版服务：Warn、不阻断、沿用本地 SystemConfigs。不兼容时记 Error 并指明升级哪一边。版本规则：加帧类型 / 加 JSON 字段不升 `ProtocolVersion`。
+
 ### 4.2 管理通道（命名管道，托盘 ↔ 服务）
 
 - 管道 `\\.\pipe\PF.SecsGem.Manage`，一次连接一问一答（一行 JSON 请求 / 一行 JSON 应答），管理协议版本号不一致时服务回错误。
@@ -92,12 +97,13 @@ PF.SecsGem（独立项目，单独解决方案与安装包）
 
 | 命令 | 读/写 | 期 | 状态 |
 |---|---|---|---|
-| `GetStatus` 状态快照 | 读 | 一 | 已实现，需补字段（§8.2） |
-| `GetEvents(sinceSeq)` 连接事件 | 读 | 一 | |
-| `GetDiagnostics` 诊断检查 | 读 | 一 | |
-| `GetLinkConfig` 链路配置 | 读 | 一 | |
+| `GetStatus` 状态快照 | 读 | 一 | 已实现（含主程序握手信息、本机通道协议版本） |
+| `GetEvents(sinceSeq)` 连接事件 | 读 | 一 | 已实现 |
+| `GetDiagnostics` 诊断检查 | 读 | 一 | 改为托盘侧汇总（`Diagnostics`），不需要服务命令 |
+| `GetLinkConfig` 链路配置 | 读 | 一 | 已实现 |
+| `ReadProjectLinkConfig(project)` 读某项目库的 SystemConfigs（不生效，供"从项目导入"填表） | 读 | 一 | 已实现（2026-11-20） |
 | `GetMessages(sinceSeq)` 报文 | 读 | 二 | |
-| `SetLinkConfig` 修改链路配置并重开 HSMS 监听 | 写 | 二 | 依赖 §9 |
+| `SetLinkConfig` 修改链路配置并重开 HSMS 监听 | 写 | 一 | 已实现（2026-11-20），服务端校验调用方为已提权管理员 |
 | `DisconnectHost` 断开当前 Host | 写 | 二 | |
 
 服务的启动 / 停止 / 安装 / 升级不走管道：托盘以管理员身份直接操作 SCM 和文件系统（§8.3）。
@@ -242,6 +248,16 @@ PF.SecsGem（独立项目，单独解决方案与安装包）
 - **首次迁移**：服务启动时若没有 `link.json`，按 `appsettings.json` 的 `ProjectName` 从该项目 `SecsGemConfig.db` 的 `SystemConfigs` 导入一次并写出 `link.json`；导入不到时用 `SecsGemSystemParam` 默认值并在托盘诊断页标红。之后不再读项目库。
 - **旧服务兼容**：旧版服务不推送配置帧，主程序在超时内没收到就沿用本地 `SystemConfigs`（即现有行为），并按"旧版服务"提示（§4.1）。
 
+**实施时的调整（2026-11-20）**：
+- 帧格式见 §4.1"实施"（文本帧，不带长度头）。
+- **没有链路配置时不开 HSMS 监听**，不用 `SecsGemSystemParam` 默认值建链（草案写的"导入不到时用默认值"会让服务以 127.0.0.1:5000 等默认值静默运行）；事件与托盘诊断标红，提示到「链路配置」页填写。
+- link.json **损坏时不自动迁移覆盖**：坏文件先备份，项目库里的可能是旧值，等人在托盘处理。
+- 迁移只读打开项目库，**库不存在不创建**（旧服务启动时 `EnsureCreated`，项目名配错就在配置根目录下凭空建出项目目录与空库）；服务启动不再创建 / 打开任何项目库。
+- 服务包 `appsettings.json` 的 `ProjectName` 默认改为空串（此前是 `PF.Application.Shell`，新机器若恰好有 Demo 的库会被误迁移）；托盘首次安装时"迁移来源"可选可不选。
+- 托盘「链路配置」页"从项目导入"：经 `ReadProjectLinkConfig` 读出填表，保存才生效——一机多项目切换时手动导入即可（按项目分档的方案用户定为先不做）。
+- 主程序本地系统参数为空时也连接服务（此前 `InitializationClient` 直接返回 false，新机器上配置永远到不了主程序）。
+- 调试页只读的判定是"握手成功且服务声明 `ManagesLinkConfig`"：接的是旧版服务时仍可在主程序维护。
+
 ### 9.4 框架侧改动范围
 - `PF.Core`：本机通道帧定义（版本帧、链路配置帧）。
 - `InternalClient`（`PF.Infrastructure`）：处理两种新帧；收到配置帧后写本地 `SystemConfigs` 并更新报文头用的 DeviceID。
@@ -252,8 +268,13 @@ PF.SecsGem（独立项目，单独解决方案与安装包）
 
 ## 10. 待讨论
 
-1. **本机通道协议常量放哪**：倾向框架 PF.Core——链路配置帧直接传 PF.Core 里的 `SecsGemSystemParam`，帧定义放在同一处最自然（§3、§9.3）。
-2. **正式托盘图标**：目前用系统图标占位。
+1. ~~本机通道协议常量放哪~~：已定为 PF.Core（`Constants.SecsGemLocalChannel`）。
+2. ~~正式托盘图标~~：已用公司 logo 按状态整体着色。
+3. **非本框架项目接入（2026-11-20 列入计划）**：服务链路配置独立后已与项目无关，任何能写 TCP 的程序按 6800 协议接入即可用。待做：
+   - 《本机通道对接说明》：帧格式（0x00 报文帧 = [0x00] + 完整 HSMS 报文；0x02 Host 状态；0x03 握手 / 0x04 链路配置 = [命令][JSON][0x0A]，可解析可丢弃）、接入时序（握手 → 配置 → 状态 → 开 HSMS）、示例字节流。
+   - 职责划分写清楚：服务管 HSMS 监听与控制报文（Select / Linktest / Deselect / Separate / Reject）及转发；接入方管 SECS-II 编解码、业务应答、SystemBytes、T3、报文头 DeviceID（须与链路配置一致，服务不改头）。
+   - 最小 C# 客户端示例；评估 `InternalClient` 在框架 WPF 外壳之外单独使用的依赖（IParams / ICommandManager / ILogService）。
+   - 限制：6800 同一时间一个连接、新连接顶替旧连接且无身份校验；仅被动模式。
 
 ---
 
@@ -278,4 +299,6 @@ PF.SecsGem（独立项目，单独解决方案与安装包）
 | 服务运行状态 + 管理通道 `GetStatus`（ACL、版本校验） | 同上 |
 | 超级用户规则抽到 `PF.Core.Constants.SuperUserCredential` | 框架 `59ac10d` |
 | 托盘：超级用户会话、启停服务、管理界面占位、旧版服务识别、PF.UI.Resources 统一风格、操作日志 | 托盘 `e825852` |
-| 托盘菜单收紧（启停 / 退出移入管理界面）、左侧导航管理界面 | 待实施 |
+| 托盘菜单收紧（启停 / 退出移入管理界面）、左侧导航管理界面 | 托盘（2026-11-19） |
+| 托盘安装包（只装托盘，服务由超级用户在管理界面手动安装）、公司 logo 按状态着色 | 托盘 `3625fb7` |
+| 本机通道双向握手 + 链路配置帧（§4.1）、链路配置独立 link.json + 首次迁移 + `SetLinkConfig` / `ReadProjectLinkConfig`（§9）、调试页系统参数只读、独立服务跳过项目绑定校验 | 框架 2.1.0（PF.Core / PF.Infrastructure 2.1.0，PF.Modules.SecsGem / PF.Application.Base 2.0.1）+ 托盘 / 服务 2.1.0 |

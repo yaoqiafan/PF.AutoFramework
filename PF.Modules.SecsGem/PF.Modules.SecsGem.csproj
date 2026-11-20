@@ -14,8 +14,15 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>2.0.0</Version>
+		<Version>2.0.1</Version>
 		<PackageReleaseNotes>
+v2.0.1 (2026-11-20) — 系统参数由 SECS 服务管理时只读（需 PF.Infrastructure 2.1.0）
+
+[变更]
+- 本机服务握手声明"链路配置由服务管理"时，SECS 调试页系统参数（Host 地址、端口、DeviceID、超时、MDLN / SOFTREV）只读：
+  保存 / 导入系统参数被拦下并提示到 PF SecsGem 托盘「管理界面 → 链路配置」修改——服务每次接入都会下发覆盖，本地改了也会被冲掉。
+  旧版服务仍按原方式在本页维护。收到服务下发的配置后自动刷新显示。
+
 v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
 [版本说明]

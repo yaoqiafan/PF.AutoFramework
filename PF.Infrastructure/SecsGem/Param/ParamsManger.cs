@@ -236,6 +236,31 @@ namespace PF.Infrastructure.SecsGem.Param
             }
         }
 
+        /// <summary>
+        /// 整体替换系统参数并写入 SystemConfigs（服务下发链路配置时调用）。
+        /// 先改内存再写库：报文头的 DeviceID、S1F2 的 MDLN / SOFTREV 立即按新值生效，写库失败只影响下次启动前的本地副本
+        /// （下次接入服务还会再下发一次）。
+        /// </summary>
+        public async Task<bool> ReplaceSystemParamAsync(SecsGemSystemParam param)
+        {
+            ArgumentNullException.ThrowIfNull(param);
+            SetParam(ParamType.System, param);
+            try
+            {
+                using var scope = _secsGemDataBase.BeginScope();
+                var repo = scope.GetRepository<SecsGemSystemEntity>(SecsDbSet.SystemConfigs);
+                await repo.RemoveRangeAsync(await repo.GetAllAsync());
+                await repo.AddRangeAsync(new[] { param.ToEntity() });
+                await scope.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SecsGemTrace.Warn($"写入 SECS/GEM 系统参数（SystemConfigs）失败，已在内存生效：{ex.Message}");
+                return false;
+            }
+        }
+
         private bool InitializationDefuaultSecsGemFormula(string path) { return true; }
 
         private bool SaveSecsGemFormula(string path) { return true; }

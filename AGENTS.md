@@ -193,6 +193,7 @@ D:\PFConfig\PFAutoFrameWork\
 - 项目若重写 `ProjectName`，必须同步设置 `installer.conf` 的 `PROJECT_NAME`，否则服务指向另一个目录的 `SecsGemConfig.db`（启动时 `VerifySecsServiceProjectBinding` 会弹窗告警）
 - **不用 SECS/GEM 的项目**：在 App 中重写 `protected override bool UsesSecsGemService => false;`（`PFApplicationBase`，默认 `true`）。关闭后跳过 SECS/GEM 的 DI 注册与 `SecsGemConfig.db` 创建、跳过服务绑定校验，并拦下命名空间以 `PF.Modules.SecsGem.` 开头的模块（`ConfigureModuleCatalog` 里仍写着 `AddModule` 也不会加载）。**必须关**：绑定校验解析的是 SCM 中实际注册的 ImagePath，而服务全机唯一，一机多项目时只要有任一项目装过该服务，不用 SECS 的项目启动也会弹告警，并建议"接管服务"——照做就抢走了别人正在用的服务
 - SECS 服务名固定为 `SecsGemService`，**不按项目区分**：本机通道端口 6800 在 `Worker.LocationServer` 与 `InternalClient` 两端硬编码，HSMS 被动端口也只有一个，全机只能有一个实例真正工作；按项目注册多个 `start= auto` 服务只会让它们开机争抢 6800。一机多项目时服务归属最后安装的项目，主程序启动时解析 SCM 中**实际注册**的 `ImagePath`（而非本项目安装目录）来校验归属
+- **独立 SECS 服务（PF SecsGem 托盘仓库，2.1.0 起）自己保存链路配置** `{ConfigRoot}\SecsGemService\link.json`，主程序接入 6800 时握手并下发，`InternalClient` 写进本地 SystemConfigs，SECS 调试页系统参数只读（`LinkConfigManagedByService`）；它的 `ProjectName` 只是首次迁移来源，`VerifySecsServiceProjectBinding` 见到 link.json 即跳过。本机通道帧定义只在 `PF.Core.Constants.SecsGemLocalChannel`，新帧必须是"[命令][JSON][0x0A]"（旧端逐字节丢弃才能越过），**不要加二进制长度头**。下面两条描述的是框架内的旧服务副本
 - 服务读不到 `ProjectName` 时**拒绝启动**并写 EventLog + `D:\PF_Logs\SecsGem\Service\startup-error.log`（不回退根目录：各设备 `SecsGemConfig.db` 内容不同，回退会让服务用空库与 Host 建链，外部看是"正常运行"）
 - 老版本升级必须先执行 `Installer\Migrate-Config.ps1`，详见 `Installer\现场升级迁移说明.md`
 
@@ -293,6 +294,7 @@ D:\PFConfig\PFAutoFrameWork\
 | 启动抛 `TypeInitializationException` | 静态字段初始化器捕获了 `ConfigPath` | 改成 `=>` 表达式属性，延迟到 `Initialize` 之后求值 |
 | `ConfigPath` 抛"尚未初始化" | 宿主没继承 `PFApplicationBase`（工具、测试宿主） | 显式调用 `ConstGlobalParam.Initialize(项目名)` |
 | 换项目后参数全没了 | 老布局未迁移，或两个项目共用了同一个配置目录 | 执行 `Installer\Migrate-Config.ps1`，确认各项目 `ProjectName` 不同 |
+| SECS 调试页系统参数保存被拦"由 SECS 服务管理" | 接的是独立服务（2.1.0 起），链路配置以服务下发为准，本地改了下次接入会被覆盖 | 到 PF SecsGem 托盘「管理界面 → 链路配置」修改 |
 | SecsGem 服务起不来 | `appsettings.json` 缺 `ProjectName` 键 | 看 `D:\PF_Logs\SecsGem\Service\startup-error.log`，补键后重启服务 |
 | 重写了 `ExecuteInitializeAsync` 手动调 `Fire` | 应重写钩子不是入口 | 改为重写 `OnInitializeAsync` / `OnResetAsync`，基类自动管理状态机 |
 | 复位后状态机不前进 | 在 `OnResetAsync` 里调了 `ResetAlarm()` / `Fire` | `OnResetAsync` 内只做硬件动作，基类自动路由 `ResetDone` / `ResetDoneUninitialized` |

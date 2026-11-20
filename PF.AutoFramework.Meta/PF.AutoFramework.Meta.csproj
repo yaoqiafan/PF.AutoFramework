@@ -3,8 +3,16 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <PackageReleaseNotes>
+v2.1.0 (2026-11-20) — SECS 本机通道协议握手 + 链路配置由服务管理
+
+[变更]
+- 依赖升级：PF.Core 2.1.0、PF.Infrastructure 2.1.0、PF.Modules.SecsGem 2.0.1、PF.Application.Base 2.0.1，其余仍为 2.0.0。
+- 配合 PF SecsGem 托盘 / 服务 2.1.0：主程序接入本机服务后握手，链路配置（SystemConfigs 全部字段）以服务下发为准，
+  SECS 调试页系统参数只读；旧版服务按原方式工作（2 秒未握手判为旧版，日志提示升级）。
+- 新旧混搭安全：新帧旧端逐字节丢弃，不影响报文收发。各包具体变更见对应包的版本说明。
+
 v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
 [版本说明]

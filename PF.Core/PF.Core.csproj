@@ -3,8 +3,19 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>2.0.0</Version>
+		<Version>2.1.0</Version>
 		<PackageReleaseNotes>
+v2.1.0 (2026-11-20) — SECS 本机通道协议握手 + 链路配置由服务管理（设计稿 §4.1 / §9）
+
+[新增]
+- Constants.SecsGemLocalChannel：本机通道（6800）帧定义的唯一来源。新增握手帧 0x03 与链路配置帧 0x04，
+  格式为 [命令][JSON][0x0A]——JSON 只含可打印 ASCII，旧版主程序 / 旧版服务逐字节丢弃即可越过，新旧混搭不会吞报文。
+  ProtocolVersion = 1；LinkConfigPath（服务独立保存的 link.json 路径）。
+- SecsGemLocalHello（握手内容）、SecsGemServiceHandshake（Pending / Compatible / Incompatible / Legacy）。
+- IinternalClient：ServiceHandshake / ServiceHello / LinkConfigManagedByService 与 ServiceHandshakeChanged / LinkConfigReceived 事件。
+- IParams.ReplaceSystemParamAsync：整体替换系统参数并写入 SystemConfigs。
+  （两处接口新增成员：自行实现 IinternalClient / IParams 的项目需补实现；框架内只有 InternalClient / ParamsManger。）
+
 v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
 [版本说明]

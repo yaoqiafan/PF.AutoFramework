@@ -71,8 +71,21 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>2.0.0</Version>
+		<Version>2.1.0</Version>
 		<PackageReleaseNotes>
+v2.1.0 (2026-11-20) — SECS 本机通道握手与链路配置下发（需 PF.Core 2.1.0）
+
+[新增 — InternalClient]
+- 接入本机服务后互发握手帧：2 秒内没收到服务的握手判为旧版服务（Warn，不阻断，沿用本地 SystemConfigs）；
+  协议不兼容记 Error 并指明该升级服务还是主程序。
+- 收到服务下发的链路配置帧：写入本地系统参数（内存 + SystemConfigs 表），报文头 DeviceID 立即按新值生效，
+  逐字段记录改动；与本地一致时不写库。
+- 本地系统参数为空时也照常连接（此前直接返回 false、根本不连，新机器上服务下发的配置永远到不了）。
+- DeviceID 非法（非数字、超出 0~32767）时按 0 处理并记 Warn，不再让初始化抛异常。
+
+[新增 — ParamsManger]
+- ReplaceSystemParamAsync：先改内存再整表替换 SystemConfigs；写库失败返回 false，内存仍生效。
+
 v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
 [版本说明]

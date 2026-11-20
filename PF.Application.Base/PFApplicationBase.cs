@@ -286,6 +286,11 @@ namespace PF.Application.Base
                 var exePath = ServicePathResolver.ResolveSecsServiceExePath();
                 if (!File.Exists(exePath)) return;            // 项目未部署该服务，静默跳过
 
+                // 独立服务（PF SecsGem 托盘安装的版本）把链路配置存在自己的 link.json，不再读任何项目的
+                // SecsGemConfig.db，ProjectName 只在首次迁移时用一次——一机多项目共用同一个服务是正常用法，不告警。
+                // 链路配置与本地是否一致由本机通道握手后服务下发解决（InternalClient）
+                if (File.Exists(SecsGemLocalChannel.LinkConfigPath)) return;
+
                 var settingsPath = ServicePathResolver.GetSecsServiceSettingsPath(exePath);
                 var svcProject   = ServicePathResolver.TryReadServiceProjectName(settingsPath);
 

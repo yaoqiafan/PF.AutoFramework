@@ -3,8 +3,15 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>2.0.0</Version>
+		<Version>2.0.1</Version>
 		<PackageReleaseNotes>
+v2.0.1 (2026-11-20) — 独立 SECS 服务不再做项目绑定校验（需 PF.Core 2.1.0）
+
+[变更]
+- VerifySecsServiceProjectBinding：存在服务链路配置文件（D:\PFConfig\PFAutoFrameWork\SecsGemService\link.json，
+  即 PF SecsGem 托盘安装的独立服务）时跳过——它不再读任何项目的 SecsGemConfig.db，一机多项目共用一个服务是正常用法。
+  旧版服务（各项目安装包自带的副本）仍照常校验。
+
 v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
 [版本说明]
