@@ -521,7 +521,7 @@ namespace PF.Application.Base
             if (AutoLoginSuperUser)
             {
                 // 原 .GetAwaiter().GetResult() 同步阻塞 UI 线程（WPF SynchronizationContext 死锁风险），改 await。
-                await authService.LoginAsync("SuperUser", DateTime.Now.ToString("yyyyMMddHH00"));
+                await authService.LoginAsync(SuperUserCredential.UserName, SuperUserCredential.CurrentPassword());
             }
 
             var controller = Container.Resolve<IMasterController>();

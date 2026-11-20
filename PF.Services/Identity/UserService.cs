@@ -66,16 +66,15 @@ namespace PF.Services.Identity
         {
             try
             {
-                string psw = DateTime.Now.ToString("yyyyMMddHH00"); 
-
-                if (userName.ToLower()== "SuperUser".ToLower()&& password== psw)
+                // 规则唯一来源：PF.Core.Constants.SuperUserCredential（SecsGem 托盘也用它）
+                if (SuperUserCredential.Verify(userName, password))
                 {
                     CurrentUser = new UserInfo
                     {
-                        UserName = "SuperUser",
-                        UserId = "SuperUser",
+                        UserName = SuperUserCredential.UserName,
+                        UserId = SuperUserCredential.UserName,
                         Root =  UserLevel.SuperUser,
-                        Password = psw,
+                        Password = password,
                         AccessibleViews = DefaultPermissions.GetAccessibleViews(UserLevel.SuperUser),
                     };
                     _systemLogger.Info($"超级用户登录成功！");
