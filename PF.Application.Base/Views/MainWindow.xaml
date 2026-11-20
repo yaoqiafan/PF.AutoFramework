@@ -393,7 +393,10 @@
             </StatusBarItem>
 
             <Separator />
-            <StatusBarItem>
+            <StatusBarItem Cursor="Hand" ToolTip="点击登录 / 切换账号">
+                <StatusBarItem.InputBindings>
+                    <MouseBinding Command="{Binding ShowLoginDialogCmd}" Gesture="LeftClick" />
+                </StatusBarItem.InputBindings>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="当前权限：" />
                     <TextBlock Foreground="{Binding CurrentUser.Root, Converter={StaticResource UserBackGroundConnver}}" Text="{Binding CurrentUser.Root, Converter={StaticResource UserTextConnver}}" />

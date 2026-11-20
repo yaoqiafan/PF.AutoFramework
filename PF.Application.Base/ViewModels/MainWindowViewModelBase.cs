@@ -104,6 +104,10 @@ namespace PF.Application.Base.ViewModels
                     NavigationConstants.Regions.SoftwareViewRegion,
                     NavigationConstants.Views.AlarmCenterView));
 
+            // 状态栏「当前权限」点击：弹出登录框切换账号（与侧边栏「权限获取」同一个对话框）
+            ShowLoginDialogCmd = new DelegateCommand(() =>
+                DialogService.ShowDialog(NavigationConstants.Dialogs.LoginView, _ => { }));
+
             // 状态栏条目加入时注入统一的操作执行器（子类通常在自身构造函数中 Add 条目，晚于此处订阅）
             DeviceStatusItems.CollectionChanged += (_, e) =>
             {
@@ -685,6 +689,8 @@ namespace PF.Application.Base.ViewModels
         public ICommand ChangeExpandCmd { get; }
         /// <summary>导航至报警中心页面。</summary>
         public ICommand NavigateToAlarmCenterCmd { get; }
+        /// <summary>弹出登录框（状态栏「当前权限」点击）。</summary>
+        public ICommand ShowLoginDialogCmd { get; }
 
         #endregion
     }
