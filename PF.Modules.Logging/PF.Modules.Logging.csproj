@@ -13,71 +13,17 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.7</Version>
+		<Version>2.0.0</Version>
 		<PackageReleaseNotes>
-v1.0.7 (2026-10-29) — 超长日志消息截断显示，防止单条大日志卡死界面
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
+
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
 [修复]
-- 实时日志区与日志管理页的消息列超过 2000 字符或 40 行时只显示开头，末尾注明总字符数 / 行数（LogMessageDisplayConverter）。
-  此前单条几 MB 的消息（如整条检测结果报文）在界面线程上自动换行排版要数秒，之后每次刷新、滚动还要重排，整个界面卡死。
-- 只截显示：复制、导出、搜索与日志文件仍是完整内容。
-
-v1.0.6 (2026-10-23) — 实时日志跨天不更新、自动滚动无效修复；日志管理多选复制/导出；两个表格启用虚拟化
-
-[修复 — LogListView（实时日志）]
-- 软件连续运行跨天后仍只显示启动当天的日志：删除日期筛选（DateRanges 下拉框），实时日志始终显示内存中的最新日志。
-- 「自动滚动」无效果：新日志到达时滚动到顶部；手动离开顶部自动取消勾选，回到顶部自动重新勾选；
-  未勾选时新日志插入不会让当前查看位置跳动。
-- 页面离开/返回时订阅对称处理，返回后按日志服务内存缓冲重新同步，不丢不重。
-- OperationLogKeysLogging 删除 LogListView.SelectedDateRange 键。
-
-[新增 — LogManagementView（日志管理）]
-- 表格支持多选（Ctrl / Shift），右键菜单「复制选中」「导出选中」，Ctrl+C 复制；导出按表格顺序写文件。
-  OperationLogKeysLogging 新增 CopySelected / ExportSelected（关键）键。
-- 默认每页条数 200。
-- 去掉消息列悬浮提示（单条超长日志时提示框会导致界面卡顿；完整内容仍可在详情中查看）。
-
-[优化 — 虚拟化]
-- 两个页面的列表/表格启用 UI 虚拟化（按像素滚动、容器复用），大量日志时滚动与刷新不再卡顿。
-
-v1.0.5 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
-
-[修复]
-- 框架仓库共享的 Common.Desktop.props 曾错误设置 RuntimeIdentifier=win-x64（该属性只应用于
-  真正消费 PF.Vendor.Infrastructure 的项目，本仓库自身没有项目这样做），导致 2026-09-15 早间
-  批量打包时本包连同其余 10 个 net8.0-windows 库一起被打上 win-x64 专属架构标记，AnyCPU
-  消费项目引用时报"处理器架构不匹配"警告。本次仅移除该属性重新打包，代码无变化。
-
-v1.0.4 (2026-09-10) — 修复日志列表滚动卡顿（变行高场景）
-
-[修复]
-- LogListView（LogEntryTemplate 列表）与 LogManagementView（DataGrid）均把
-  ScrollViewer.CanContentScroll 由 True 改为 False。两处日志条目本就允许
-  TextWrapping="Wrap"/RowHeight="NaN" 折行变高，消费项目接入原始报文/JSON 展示后
-  单条记录可能长达十几行，行高差异被放大；CanContentScroll=True 走逻辑项虚拟化，
-  按"项数"而非像素计算滚动量，行高悬殊时表现为一卡一卡、鼠标滚轮体感极慢。改为
-  按像素滚动（False）后滚动流畅度恢复正常，代价是失去逻辑项虚拟化的极限性能，
-  但日志列表量级下无实际影响。
-
-v1.0.3 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
-
-[新增]
-- OperationLogKeysLogging 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
-  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
-  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
-- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：2 个页面
-  13 个键，其中 2 个关键操作（清空日志、导出日志）默认启用记录；其余默认关闭，
-  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
-- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
-
-
-v1.0.2 (2026-07-09) — 日志查询侧边栏图标调整
-
-[变更]
-- LogManagementView Icon：RunInfoIcon → History，避免与生产历史数据图标（此前同为
-  RunInfoIcon）重复，并适配 PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画。
-
-v1.0.1 - 框架初始独立版本
+- 日志列表批量刷新：高频日志（连续收发、连续报警）时主界面不再卡顿，列表仍按时间倒序。
+- 剪贴板被其他程序占用时「复制」提示失败，不再弹"系统错误"。
 		</PackageReleaseNotes>
 		<Description>日志查看模块：实时日志展示、分类过滤</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

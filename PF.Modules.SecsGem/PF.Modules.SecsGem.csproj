@@ -14,73 +14,25 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.7</Version>
+		<Version>2.0.0</Version>
 		<PackageReleaseNotes>
-v1.0.7 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
-[修复]
-- 框架仓库共享的 Common.Desktop.props 曾错误设置 RuntimeIdentifier=win-x64（该属性只应用于
-  真正消费 PF.Vendor.Infrastructure 的项目，本仓库自身没有项目这样做），导致 2026-09-15 早间
-  批量打包时本包连同其余 10 个 net8.0-windows 库一起被打上 win-x64 专属架构标记，AnyCPU
-  消费项目引用时报"处理器架构不匹配"警告。本次仅移除该属性重新打包，代码无变化。
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
-v1.0.6 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
+[修复 — 调试页安全]
+- 新增 SecsConfigSafety：导入 / 保存 / 覆盖 / 删除 SECS 配置前检查机台状态（运行 / 初始化 / 复位中禁止，超级用户确认放行）
+  与 Host 连接（已建链需确认）。
+- 导入先加载到副本、检查读取结果后再整体换入（此前误导入错误文件会清空全部命令并写进数据库）；
+  系统参数 / 配方参数导入失败时原有配置不变。
 
-[新增]
-- OperationLogKeysSecsGem 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
-  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
-  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
-- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：4 个页面
-  54 个键，其中 40 个关键操作（连接/断开、导入命令、命令树增删改、消息节点编辑与保存、发送命令、清空事务日志、系统参数编辑/导入/保存、服务的安装/卸载/启动、流函数命令名编辑、各对话框确认）默认启用记录；其余默认关闭，
-  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
-- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
-
-
-v1.0.5 (2026-08-03) — 服务管理适配配置路径项目隔离
-
-[变更]
-- SecsServiceManagerViewModel 的服务 exe 路径解析下沉到 PF.CommonTools 的
-  ServicePathResolver（同一份实现供本面板与 PFApplicationBase 启动校验共用），
-  原私有 ResolveServiceExePath 删除。解析优先读 SCM 中实际注册的 ImagePath，
-  修复了此前注册表键名与 Setup.iss 写入值不一致（带/不带空格）导致查找恒失败、
-  静默回退到 Program Files 默认路径的问题。
-- "安装服务"按钮在注册服务前，先把当前主程序的项目名写入服务目录的 appsettings.json。
-  这条安装路径绕过安装器，服务缺少 ProjectName 键会直接拒绝启动。
-
-[说明]
-服务名仍为 SecsGemService，不按项目区分：其本机通道端口 6800 在 Worker.LocationServer
-与 InternalClient 两端硬编码，HSMS 被动端口也唯一，全机只能有一个实例真正工作。
-
-v1.0.4 (2026-07-09) — SECS/GEM 调试侧边栏图标调整
-
-[变更]
-- SecsGemDebugView Icon：DebugIcon → Antenna，避免与其它调试页共用同一图标，并适配
-  PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画。
-
-v1.0.3 (2026-07-07) — 适配 PF.SecsGem.DataBase 工作单元(UoW)模式重构（破坏性变更）
-
-[破坏性变更 — 数据访问模式]
-- SecsParameterViewModel/SecsCommandBuilderViewModel/SecsConnectionViewModel 迁移至新的
-  BeginScope() 工作单元模式（对应 PF.SecsGem.DataBase v1.0.3 的 ISecsGemDataBase API 重写）。
-  旧的 ISecsGemDataBase.GetRepository()/SaveChangesAsync() 已删除；若有下游代码直接调用
-  这些旧接口，需要同步改为：
-    using var scope = db.BeginScope();
-    var repo = scope.GetRepository&lt;T&gt;();
-    ...
-    await scope.SaveChangesAsync();
-- 依赖 PF.SecsGem.DataBase &gt;= 1.0.3。
-
-v1.0.2 (2026-06-17) — SecsParameterViewModel 代码整理 + 命名空间引用补全
-
-[变更]
-- SecsCommandBuilderViewModel：补充 using PF.Infrastructure.SecsGem.Command.Interaction，
-  修复因缺少该引用在某些编译环境下的 CS0246 潜在错误。
-- SecsParameterViewModel：全量代码格式化（去除列对齐空格，统一紧凑风格），
-  无逻辑变化，仅提升代码可读性与 diff 一致性。
-- SecsLogViewModel：小幅格式调整（空行），无逻辑变化。
-- 依赖 PF.Infrastructure 1.0.2（SecsGem 初始化逻辑重构）。
-
-v1.0.1 - 框架初始独立版本
+[修复 — 其他]
+- 报文接收回调改 InvokeAsync，不再同步等 UI 线程（此前 UI 忙时 Host 报文处理停顿，T3 超时，甚至死锁）。
+- 数组 / Binary 节点可正常编辑、保存与发送；同一 SxFy 下可新增多条不同名称的命令。
+- 报文构建页两处同步阻塞读库改为异步；通信日志面板限 1000 条；命令树加载异常不再导致页面空白且无提示。
+- 模块初始化时数据库建库结果不再忽略（失败原因可查）；服务管理页按 SCM 中实际注册的 ImagePath 定位服务（服务名全机固定 SecsGemService）。
 		</PackageReleaseNotes>
 		<Description>SECS/GEM 通信模块：报文监控与发送 UI</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

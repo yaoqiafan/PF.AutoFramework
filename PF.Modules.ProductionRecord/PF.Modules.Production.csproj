@@ -11,36 +11,17 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.4</Version>
+		<Version>2.0.0</Version>
 		<PackageReleaseNotes>
-v1.0.4 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
+
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
 [修复]
-- 框架仓库共享的 Common.Desktop.props 曾错误设置 RuntimeIdentifier=win-x64（该属性只应用于
-  真正消费 PF.Vendor.Infrastructure 的项目，本仓库自身没有项目这样做），导致 2026-09-15 早间
-  批量打包时本包连同其余 10 个 net8.0-windows 库一起被打上 win-x64 专属架构标记，AnyCPU
-  消费项目引用时报"处理器架构不匹配"警告。本次仅移除该属性重新打包，代码无变化。
-
-v1.0.3 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
-
-[新增]
-- OperationLogKeysProduction 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
-  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
-  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
-- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：2 个页面
-  12 个键，其中 5 个关键操作（导出 Excel、导出 CSV、清空生产记录）默认启用记录；其余默认关闭，
-  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
-- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
-
-
-v1.0.2 (2026-07-09) — 生产历史侧边栏图标调整
-
-[变更]
-- ProductionHistoryView Icon：RunInfoIcon → ChartBar，与日志查询图标（此前同为
-  RunInfoIcon）区分开；ChartBar 路径连贯完整，配合 PF.Application.Base v1.0.3 新增的
-  侧边栏悬停描边动画时绘制效果更好。
-
-v1.0.1 - 框架初始独立版本
+- 生产数据库由宿主在启动加载阶段（模组初始化之前）建好，模块内改为幂等兜底，并检查建表结果（此前 fire-and-forget，
+  建表失败无任何痕迹、生产数据从此不落库）。不加载本模块时生产数据照常写库。
 		</PackageReleaseNotes>
 		<Description>生产数据模块：历史数据浏览、条件查询、Excel/CSV 导出</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

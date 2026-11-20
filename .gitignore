@@ -81,6 +81,9 @@ StyleCopReport.xml
 *_h.h
 *.ilk
 *.meta
+# 上一条在不区分大小写时会把元包项目目录 PF.AutoFramework.Meta 整个忽略掉（其 README.md 因此从未入库，
+# 新克隆打包会缺包说明），这里单独放行
+!/PF.AutoFramework.Meta/
 *.obj
 *.iobj
 *.pch

@@ -3,218 +3,31 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.14</Version>
+		<Version>2.0.0</Version>
 		<PackageReleaseNotes>
-v1.0.14 (2026-11-18) — 启动参数清理不再删除用户账号（含行为变更）
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
-[修复 — 新建账号重启后消失]
-- AppParamDbContext.EnsureDefaultParametersCreatedAsync：用户表（UserLoginParams）只补不删。此前每次启动都把
-  不在代码默认集里的行当废弃参数删除，「用户管理」里新建的账号重启即消失。
-- 系统 / 硬件 / 通讯三张表仍清理废弃行，但每删一行都写 Warn 日志（参数名 + 原值），此前静默删除。
-  新增重载 EnsureDefaultParametersCreatedAsync(defaultParam, onRemoved, token)，原签名保持不变。
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
-v1.0.13 (2026-11-05) — 注册语音播报服务
+[修复 — 启动]
+- 参数库注册改同步；OnInitialized 失败不再留下无窗口的僵尸进程。
+- 报警字典、生产库、SECS 库改在 Splash 第一步初始化（此前晚于模组初始化：启动期报警显示"未定义报警"、
+  SECS 机构首启读表失败、不装生产记录模块时生产数据永不落库并阻塞工站）。
+- Splash 加载失败选"继续"时也启动安全门 / 按钮扫描。
+- 启动参数清理不再删除用户账号：用户表只补不删（此前新建账号重启即消失）；系统 / 硬件 / 通讯三张表删除废弃行时逐条记 Warn。
 
-[新增]
-- RegisterTypes 中注册 ISpeechService → SpeechService（单例，PF.CommonTools）。工站 / 机构 / ViewModel 构造注入
-  ISpeechService 即可调用 Speak("...")；首次解析时初始化引擎，系统无语音包时为空操作。
-- 纯新增，消费项目无需改动。
+[修复 — 安全]
+- 运行中退出：先停止全部工站、轴停稳后再解锁安全门。
+- 三色灯按主控当前状态设灯（此前事件乱序可致报警时亮绿灯）。
 
-v1.0.12 (2026-11-04) — 状态栏设备条目支持点击执行操作（重新连接 / 断开 / 清除报警等）
-
-[新增 — 状态栏可点击操作]
-- 新增 StatusItemAction：Header + Execute(CancellationToken → Task&lt;bool&gt;)，可选 MinUserLevel（默认 Engineer）、
-  AllowWhileMachineBusy（默认 false）、ConfirmText、Timeout（默认 30 秒）。
-- 新增 StatusItemActions 工厂：Reconnect / Disconnect / ClearAlarm（IHardwareDevice）、SecsReconnect / SecsDisconnect（ISecsGemManager）；
-  设备以委托传入、执行时解析（条目通常在硬件加载完成前创建）。
-- DeviceStatusItem 新增 Actions / HasActions / IsBusy / AddAction() / AddDeviceActions()，均可链式调用。
-- MainWindowViewModelBase 新增 protected virtual ExecuteStatusActionAsync：权限 → 机台状态（Running / Initializing / Resetting 禁止）
-  → 二次确认 → 线程池带超时执行 → 结果提示 → 「操作日志」记录 [状态栏]；条目加入 DeviceStatusItems 时自动注入。
-- 主窗口状态栏：挂有操作的条目显示为左键展开的菜单，执行中状态文本显示“执行中...”；未挂操作的条目显示与原先一致。
-
-[消费项目注意]
-- 纯新增，未挂操作时行为不变，无需改动。需要时在主窗口 ViewModel 构造中调用 item.AddDeviceActions(() =&gt; 设备) 或 AddAction(...)。
-
-v1.0.11 (2026-10-29) — 修复软件退出时门锁兜底解锁从未执行
-
-[修复]
-- 主窗口关闭、启动加载失败两条退出路径走 Environment.Exit，不经过 Application.OnExit，
-  OnExit 里的门锁兜底解锁（停输入扫描 + 退出门锁手动接管 + 撤销上锁许可）此前从未执行。
-- 新增 public void ReleaseSafetyOnExit()（只执行一次）：OnExit、主窗口关闭（机构释放后、日志服务释放前）、
-  加载失败退出三处都调用。消费项目无需改动。
-
-v1.0.10 (2026-10-23) — 复位接入报警清除权限；仅调试时静默登录超级用户（含行为变更）
-
-[新增 — 复位权限]
-- 启动时为主控注入 BaseMasterController.ResetAuthorization：物理复位按钮、RequestSystemResetAsync
-  （含 SystemResetRequestedEvent）要求当前用户等级 ≥ 活跃报警中最高的清除等级；拒绝时写「操作日志」并弹出非阻塞提示。
-
-[行为变更 — 启动登录]
-- 新增虚属性 protected virtual bool AutoLoginSuperUser，默认 Debugger.IsAttached：
-  仅在 VS 中按 F5 调试启动时静默登录超级用户；直接运行 exe（含开机自启、Ctrl+F5）时为操作员。
-  此前无论如何启动都静默登录超级用户，报警清除权限等管控在超时降级前形同虚设。
-- 用 Debugger.IsAttached 而非 #if DEBUG：本包以 Release 编译发布，#if 在框架编译时已求值，消费项目的配置管不到。
-- 需要保持旧行为（如现场调机阶段）：在 App 中重写 protected override bool AutoLoginSuperUser => true;
-
-[消费项目注意]
-- 界面上直接调 IMasterController.ResetAllAsync() 的复位按钮会绕过权限检查，应改调 RequestSystemResetAsync()。
-- 升级后现场开机默认是操作员，需要工程师及以上的操作要先登录，请提前告知现场。
-
-依赖：PF.Core 1.0.32、PF.Infrastructure 1.0.30、PF.Services 1.0.9。
-
-v1.0.9 (2026-09-28) — Safety 监控线程随 Standard 一起常驻启动；退出时兜底解锁安全门
-
-- 启动画面结束后同时 StartSafetyMonitoring（原由各项目主控在 Running 时启动）；是否检测/上锁由主控下发的上锁许可决定。
-- OnExit 先撤销上锁许可并停止监控，避免软件退出后门锁保持。
-
-v1.0.8 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
-
-[修复]
-- 框架仓库共享的 Common.Desktop.props 曾错误设置 RuntimeIdentifier=win-x64（该属性只应用于
-  真正消费 PF.Vendor.Infrastructure 的项目，本仓库自身没有项目这样做），导致 2026-09-15 早间
-  批量打包时本包连同其余 10 个 net8.0-windows 库一起被打上 win-x64 专属架构标记，AnyCPU
-  消费项目引用时报"处理器架构不匹配"警告。本次仅移除该属性重新打包，代码无变化。
-
-v1.0.7 (2026-08-28) — 操作日志总开关 + 框架自身页面接入
+[修复 — 其他]
+- 公共参数原子写入，保存失败如实提示；主窗口状态轮询异常不再永久停止；空闲降权不再重复订阅。
 
 [新增]
-- CommonSettings 实现 IOperationLogSettings：新增 EnableOperationLog 总开关（参数界面
-  "A.系统参数" 分类第 8 项，PropertyGrid 可见，默认 true）。与项目级 Excel 的按 Key 开关
-  是两层粒度——总开关关闭时整个功能不生效，优先级更高。
-- PFApplicationBase：RegisterTypes 注册 IOperationLogSettings 单例；OnInitialized 里自动
-  OperationLogKeyRegistry.RegisterAssembly(框架目录) + OperationLogInterceptor.Attach()，
-  消费项目继承即得，无需任何接入代码。
-- OperationLogKeysBase 框架键目录：MainWindow（切换主题、侧边栏导航切换——关键）、
-  MainView（打开说明书/检查更新/联系技术支持/关于软件）、CommonParamView（保存公共参数——关键）。
-- MainWindow 的 pf:SideMenu 挂 Key 记录导航轨迹；MainView 四个常用操作按钮、
-  CommonParamView 保存按钮同步标记。
-
-
-v1.0.6 (2026-08-18) — 新增 UsesSecsGemService 开关：不用 SECS/GEM 的项目可整体关闭
-
-[新增]
-- PFApplicationBase.UsesSecsGemService（protected virtual，默认 true）。
-  默认值保持既有行为，既有项目升级后无需任何改动。
-  不需要 SECS/GEM 的项目在自己的 App 中写一行 override 即可整体关闭：
-      protected override bool UsesSecsGemService => false;
-
-[关闭后跳过的三处]
-- RegisterSecsGemServices 整段 DI 注册（ISecsGemManager / ICommandManager / IinternalClient 等），
-  同时不再在项目配置目录下创建空的 SecsGemConfig.db。
-  门开在调用点而非方法体内：子类即便整体重写了 RegisterSecsGemServices，也保证一行都不执行。
-- VerifySecsServiceProjectBinding 服务项目绑定校验。
-- 模块目录中命名空间以 "PF.Modules.SecsGem." 开头的模块。即便子类的 ConfigureModuleCatalog
-  里仍写着 AddModule&lt;SecsGemModule&gt;()，也会被拦下不加载——SECS/GEM 模块启动时要解析
-  ISecsGemManager，而开关关闭后这些服务根本没注册，模块一旦加载就是崩在启动阶段。
-  与其要求每个项目记得同时改两处，不如在目录层兜住。
-
-[消费项目还要自己做的事 — 重要]
-- 本开关只管框架自己那部分，管不到项目在 RegisterMechanismsAndStations / RegisterTypes 里
-  写的注册。项目若注册了依赖 ISecsGemManager 的机构，关掉开关后启动会崩在解析 MainWindow 上：
-  MainWindow 构造注入的是 IEnumerable&lt;IMechanism&gt;，DryIoc 会把【每一个】已注册机构都构造出来，
-  其中一个依赖解析不到，整个 MainWindow 就解析失败（DryIoc 报 UnableToResolveUnknownService）。
-  这类注册要用 if (UsesSecsGemService) 包起来。
-- 构造注入了 ISecsGemManager 的 ViewModel 不会在启动时崩，而是导航到该页时才崩。
-  改为注入 IContainerProvider、先 IsRegistered&lt;ISecsGemManager&gt;() 判断再 Resolve 即可
-  （与 MainWindowViewModelBase 的既有做法一致）。
-- 框架 Demo Shell 的 App.xaml.cs 里三处都有现成示例：机构注册、机构初始化名单、模块目录。
-
-[修复了什么实际问题]
-- 服务项目绑定校验此前是无条件执行的，唯一的跳过条件是"服务 exe 不存在"。但它解析的是
-  SCM 中【实际注册】的 ImagePath，而该服务全机唯一、不按项目区分——一机多项目时，
-  只要有任何一个项目装过该服务，这个判断就不成立。
-- 后果：一个压根不用 SECS/GEM 的项目，在装过该服务的机器上启动会弹模态告警，
-  说"当前注册的服务属于项目 X，而本程序是 Y"，并建议"重新运行本项目的安装包以接管服务"。
-  而真按提示做，就把项目 X 正在用的服务抢走了。
-- 现在该校验只在 UsesSecsGemService=true 时执行。
-
-[备注]
-- MainWindowViewModelBase 早已用 IsRegistered&lt;ISecsGemManager&gt;() 判断后再解析，
-  开关关闭时 SecsGemManager 属性为 null，基类自身不再有其它引用点，无需额外处理。
-
-v1.0.5 (2026-08-03) — 配置路径按项目隔离（破坏性变更，升级前必须执行现场迁移）
-
-[破坏性变更 — 升级前必读]
-配置目录由 D:\PFConfig\PFAutoFrameWork\ 改为 D:\PFConfig\PFAutoFrameWork\{项目名}\。
-已部署机台【必须】先执行 Installer\Migrate-Config.ps1 把旧布局搬进项目子目录，
-否则升级后参数、硬件配置、通讯配置、配方、点表全部回到默认值，SecsGem 服务拒绝启动。
-详见 Installer\现场升级迁移说明.md。
-
-[新增]
-- PFApplicationBase.ProjectName 虚属性：默认取入口程序集名，作为配置隔离子目录名。
-  新增实例构造函数，在其中调用 ConstGlobalParam.Initialize(ProjectName)——必须放构造函数
-  而非 OnStartup/CreateShell/RegisterTypes：C# 中派生类字段初始化器先于基类构造函数体执行，
-  子类以 => "XXX" 形式重写是安全的；其余入口都晚于 App 实例构造，期间已可能有类型触碰
-  ConfigPath 并抛 TypeInitializationException。
-  重写该属性的项目必须同步设置 installer.conf 的 PROJECT_NAME。
-- PFApplicationBase.VerifySecsServiceProjectBinding 虚方法：Splash 阶段校验当前注册的
-  SECS/GEM 服务是否属于本项目，不一致时写日志并弹窗告警（只告警不阻断——产线上因配置
-  不一致导致软件起不来，代价比让人看见告警更大）。未部署该服务的项目自动跳过。
-  校验放主程序而非服务：服务运行在 Session 0 弹不出对话框，且它没有参照物、只能发现
-  "没配 ProjectName"，发现不了"配的是别的项目"。
-
-[背景]
-AppParamDbContext.EnsureDefaultParametersCreatedAsync 会删除"不在本项目默认参数集里"的
-参数行。同机换项目运行时，A 的参数在 B 眼里全是废弃行，四张表被整批清空。
-
-v1.0.4 (2026-07-27) — 状态栏设备项支持多态（三态及以上）显示
-
-[新增]
-- DeviceStatusItem 新增 StatusText / StatusBrush / UseCustomStatus 三个成员：设置 StatusText
-  后状态栏该项自动从 IsConnected 二值灯切换为「自定义文本 + 颜色」的多态显示，用于承载三态
-  及以上的枚举状态（如 SECS 控制状态：离线/本地/远程）。枚举→文本/颜色的映射由消费方
-  （外接转换器）负责，框架只承载结果、不感知具体业务枚举，保持通用。
-- MainWindow 状态栏 ItemTemplate 相应改造：UseCustomStatus 为真时灯用 StatusBrush、文本用
-  StatusText，否则回退原 IsConnected（已连接/未连接）二值灯。现有仅用 Label/IsConnected 的
-  设备项行为完全不变，向后兼容。
-
-v1.0.3 (2026-07-09) — 主显界面下沉框架 + 侧边栏图标描边动效 + 版本徽章
-
-[新增]
-- MainWindowViewModelBase 新增 ProductImagePath/ProductDescription/UserManualPath 三个
-  虚属性；框架新增 MainView(Model) 作为各消费项目共用的主显界面（左侧产品图片+简介左右
-  布局卡片，简介以自定义样式 ContentControl 呈现并带加载动效；右侧品牌信息+常用操作区，
-  含"打开说明书"真实功能与三个占位操作），随 PFApplicationBase.RegisterTypes 统一注册。
-  消费项目只需在 Shell 层 MainWindowViewModel 子类中重写以上三属性即可接入，不必再各自
-  维护一份 MainView（PF.WorkStation.AutoOcr.UI 已同步删除原 MainView 三文件作为示例）。
-- MainWindowViewModelBase 绑定标题栏版本徽章（SoftWareVersion/RuntimeVersion）。
-
-[改进]
-- 侧边栏 MainWindow 子菜单图标：鼠标进入时轻微放大并播放一次路径描边动画（先隐藏填充→
-  精确计算长度匀速描边→填充淡入复原），离开后复位可重复触发；新增 ComputeStrokePathLength
-  替代控件库自带对多段路径估算严重失真的长度算法，避免不同图标描边速度不一致。
-- CommonParamView 图标由 AudioGeometry 改为 ViewListOutline（原图标语义不符且描边观感差）。
-
-[子包版本对照]
-本次侧边栏图标一并调整的消费方需同步升级：PF.Modules.Alarm 1.0.2→1.0.3、
-PF.Modules.Debug 1.0.2→1.0.3、PF.Modules.Halcon 1.0.1→1.0.2、
-PF.Modules.Identity 1.0.1→1.0.2、PF.Modules.Logging 1.0.1→1.0.2、
-PF.Modules.Parameter 1.0.2→1.0.3、PF.Modules.ProductionRecord 1.0.1→1.0.2、
-PF.Modules.SecsGem 1.0.3→1.0.4。
-
-v1.0.2 (2026-07-07) — 修复老库升级启动崩溃（CommunicationParams 建表 SQL 缺 Remarks 列）
-
-[修复 — 关键，v1.0.1 升级必装]
-- v1.0.1 为老库补建 HardwareParams/CommunicationParams 的裸 SQL 漏掉了 Remarks 列
-  （EF 模型经 BasicEntity 映射该列），导致所有已部署机台（SystemParamsCollection.db
-  已存在、CommunicationParams 表由裸 SQL 补建）启动时参数种子阶段首次查询即抛
-  "no such column: Remarks" 崩溃。全新数据库由 EnsureCreatedAsync 按完整模型建表
-  不受影响——这正是开发机测不出的原因。
-- 两处建表 SQL 补上 Remarks 列；并新增幂等补列逻辑（PRAGMA 检查后 ALTER TABLE），
-  已被 v1.0.1 建出缺列表的机器升级后自动修复，无需人工干预。
-
-v1.0.1 (2026-07-07) — 通讯管理集成 + 关闭流程健壮性修复
-
-[新增]
-- 通讯实例数据库持久化（新增 CommunicationParams 表）、默认配置、工厂注册；启动顺序
-  调整为通讯管理器先于硬件管理器初始化，硬件工厂可按需引用已实例化的通讯连接。
-
-[修复]
-- Window_Closing 接线：e.Cancel 前置 + 重入门 + 释放顺序 Alarm→Production→Log
-  （LogService 最后释放，确保关闭前的超时告警仍能落盘）。
-- 启动进度提示节奏收敛到 Progress 回调集中延迟，移除各处散落的 Task.Delay。
-
-v1.0.0 - 框架应用程序基础层初始版本：PrismApplication 抽象基类、MainWindow、MainWindowViewModelBase 及公共服务（IdleMonitor / PrismAlarmEventPublisher / TowerLightManager）。
+- 主窗口状态栏点击「当前权限」弹出登录框（与侧边栏「权限获取」同一对话框）。
+- 调试时自动登录超级用户改用 PF.Core.Constants.SuperUserCredential。
 		</PackageReleaseNotes>
 		<Description>PF.AutoFramework 应用程序基础层：PrismApplication 抽象基类、主窗口、ViewModel 基类及公共服务；消费项目继承 PFApplicationBase 并实现抽象钩子即可完成接入。</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

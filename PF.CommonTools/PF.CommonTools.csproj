@@ -14,57 +14,18 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.5</Version>
+		<Version>2.0.0</Version>
 		<PackageReleaseNotes>
-v1.0.5 (2026-11-05) — 新增语音播报服务 SpeechService（System.Speech，离线）
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
-[新增]
-- Speech\SpeechService：ISpeechService 的实现，基于 System.Speech（SAPI5），不依赖网络。
-  · Speak 入队立即返回；SpeakAsync 等这一句结束。全局串行播报，High 优先级插队并打断当前普通播报。
-  · 静音 / 音量（0~100）/ 语速（-10~10）/ 语音 / 常用语保存在 {ConfigPath}\speech_config.json：
-    修改后防抖 500ms 写盘（临时文件 + 替换），启动时加载；文件里的语音本机未安装时回退 zh-CN 并记 Warn。
-    配置路径未初始化的宿主照常播报，只是不保存。
-  · 播报记录：最近 200 条内存记录 + RecordUpdated 事件，含来源、结果、耗时。
-  · SaveToWaveFileAsync：文字转 WAV 文件，使用独立合成器，不占用扬声器和播报队列。
-  · 系统没有可用语音包或初始化失败时 IsAvailable=false，播报为空操作，不抛异常。
-- 新增依赖 System.Speech 10.0.10。
-
-v1.0.4 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
 [修复]
-- 框架仓库共享的 Common.Desktop.props 曾错误设置 RuntimeIdentifier=win-x64（该属性只应用于
-  真正消费 PF.Vendor.Infrastructure 的项目，本仓库自身没有项目这样做），导致 2026-09-15 早间
-  批量打包时本包连同其余 10 个 net8.0-windows 库一起被打上 win-x64 专属架构标记，AnyCPU
-  消费项目引用时报"处理器架构不匹配"警告。本次仅移除该属性重新打包，代码无变化。
-
-v1.0.3 (2026-08-03) — 新增 ServicePathResolver（SECS/GEM 服务定位与项目绑定校验）
-
-[新增]
-- ServeTool\ServicePathResolver：统一 PF.SecsGem.Service 的定位与项目归属解析，
-  供 PF.Application.Base 的启动校验与 PF.Modules.SecsGem 的服务管理面板共用。
-  · ResolveSecsServiceExePath 优先读 SCM 中【实际注册】的 ImagePath
-    （HKLM\SYSTEM\CurrentControlSet\Services\SecsGemService），而非本项目安装目录——
-    服务全机唯一（本机通道端口 6800 两端硬编码），一机多项目时它可能是别的项目装的，
-    只有读实际注册项才能查出归属不符。
-  · TryReadServiceProjectName / TryWriteServiceProjectName：读写服务 appsettings.json
-    的 ProjectName 键，服务据此定位自己的配置目录。
-
-[修复]
-- 注册表键名订正：此前 Setup.iss 写入 SOFTWARE\{Publisher}\{AppName}（AppName 含空格，
-  如 "PF AutoFramework"），而代码读取 SOFTWARE\PowerFocus\PFAutoFramework（无空格），
-  键名对不上导致 InstallPath 查找恒失败并静默回退到 Program Files 默认路径。
-  现统一为 SOFTWARE\{Publisher}\PFAutoFramework\{项目名}，并按项目名分子键，
-  一机多项目时各自的 InstallPath 互不覆盖。
-
-v1.0.2 (2026-07-07) — 修复 Release 下诊断日志被裁剪问题
-
-[修复]
-- TypeExtensions.cs / TypeScanner.cs：程序集加载/扫描失败的诊断日志此前使用
-  System.Diagnostics.Debug.WriteLine（带 [Conditional("DEBUG")]，Release 构建下被编译器
-  整体裁掉，等同空 catch），改用 System.Diagnostics.Trace.WriteLine（Release 默认定义
-  TRACE，诊断信息得以保留）。
-
-v1.0.1 - 框架初始独立版本
+- TypeScanner：缓存键按数组内容比较；程序集数量变化时重新扫描；不同 CustomFilter 不再互相拿到对方的缓存结果。
+- ServicePathResolver：写 appsettings.json 改为原子写入。
+- ServerMangerTool：失败日志提级（此前 Debug 级，现场看不到）。
 		</PackageReleaseNotes>
 		<Description>通用工具集：EnumParameterExtensions、JSON 序列化、反射辅助工具、语音播报</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

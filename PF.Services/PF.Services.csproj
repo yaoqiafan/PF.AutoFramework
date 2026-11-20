@@ -16,179 +16,35 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.10</Version>
+		<Version>2.0.0</Version>
 		<PackageReleaseNotes>
-v1.0.10 (2026-11-18) — 服务层修复合集（依赖 PF.Core 1.0.38 / PF.Data 1.0.5 / PF.Infrastructure 1.0.37）
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
+
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
 [行为变更 — 设备自恢复不再自动复位工站]
-- AlarmService 新增 ClearAlarmAutomatically：只撤销报警，不发硬件复位请求。主控的子站自恢复、安全门/监控恢复、
-  HardwareInputMonitor 的各类恢复都改走它。此前设备掉线后自动恢复会让主控在无人操作时对报警态工站执行
-  ExecuteResetAsync（可能含回零），与"自恢复只撤销显示、仍需操作员复位"的约定相悖。
-  报警中心人工清除（ClearAlarm）仍触发局部复位；ClearAllActiveAlarms（复位成功后）不再逐条发复位请求。
+- AlarmService 新增 ClearAlarmAutomatically：只撤销报警，不发硬件复位请求。主控子站自恢复、安全门 / 监控恢复、
+  HardwareInputMonitor 各类恢复都改走它（此前无人操作时也会对报警态工站执行复位，可能含回零）。
+  人工清除（ClearAlarm）仍触发局部复位；ClearAllActiveAlarms 不再逐条发复位请求。
 
 [修复 — 数据丢失]
-- ProductionDataService：一次写库失败（如 database is locked）后失败实体残留在长生命周期 DbContext，此后所有生产数据
-  都写不进去直到重启，且失败只输出到调试器 → 失败后清空跟踪并记 Error（含数据内容）。
-- ProductionDataService：QueryAsync 的 MaxCount 在排序前截断，"最近 N 条"实际是任意（通常最早的）N 条 → 先排序再截断。
-- ProductionDataService：JSON 不再把中文转义为 \uXXXX（关键字搜中文搜不到、导出不可读）；仅对新记录生效。
-  Excel 导出遇到超过 32767 字符的单元格不再整体失败（截断并提示改用 CSV）。
-- ParamService：未注册的 POCO 参数类型落到系统参数表时记 Warn（每类型一次）——该表启动时会清理不在默认参数集里的行。
-- AlarmService：运行时信息（失败原因等）随报警历史持久化（新列 RuntimeMessage，老库年度分表自动补列），
-  历史查询优先显示；年度分表 DDL 每年份每进程只执行一次（此前每条报警执行 5 条 DDL）。
-- TimerPersistence：并发触发时串行 + 原子写入，避免写坏后丢失全部末次执行时间。
+- ProductionDataService：一次写库失败后失败实体残留、此后所有生产数据写不进去 → 失败后清空跟踪并记 Error；
+  QueryAsync 的 MaxCount 先排序再截断；JSON 不再把中文转义；Excel 导出超长单元格截断而非整体失败。
+- ParamService：未注册的 POCO 参数类型落到系统参数表时记 Warn（该表启动时会清理不在默认参数集里的行）。
+- AlarmService：运行时信息随报警历史持久化（新列 RuntimeMessage，老库年度分表自动补列）；年度分表 DDL 每年每进程只执行一次。
+- TimerPersistence：并发触发串行 + 原子写入。
 
 [修复 — 热重载]
-- HardwareManagerService.ReloadAllAsync：子设备先于父设备断开（此前按字典顺序，可能先关板卡）；重载串行化；
-  单个设备释放异常不再中断整轮重载。
+- HardwareManagerService.ReloadAllAsync：子设备先于父设备断开；重载串行化；单设备释放异常不中断整轮。
 - CommunicationManagerService.ReloadAllAsync：同样串行化并隔离单实例异常。
 
 [修复 — 其他]
-- TowerLightDoWriter：IO 板卡不可用的警告只在状态变化时记一次（闪烁时此前每 0.5 s 一条）；板卡重新连上后按当前状态重写输出。
-- TowerLightService：蜂鸣器屏蔽参数改按实体全名写入（此前写的是 Demo 的枚举名 "E_Params"，框架内无法解析）。
-- HardwareInputMonitor：安全门处于屏蔽状态时启动日志升为 Warn。
-- AppTimerService：每月任务配置的日期超过当月天数时取月末（此前每月 31 号在小月永不触发）。
-- LogService：异常堆栈不再在日志文件里出现两遍。
-
-v1.0.9 (2026-10-23) — 报警码首次写库 + 清除等级以数据库为准，新增报警清除权限服务；门锁手动接管（含行为变更）
-
-[变更 — AlarmDictionaryService 报警码加载]
-- 取消数据库扩展/覆盖报警码的合并加载：报警文案（描述/分类/SOP 等）只来自代码 [AlarmInfo]。
-- 启动时与 AlarmHistory.db 的 AlarmDefinitions 表同步（与默认参数同一模式）：代码有、库里没有的插入（清除等级取
-  [AlarmInfo(ClearLevel)]）；库里已有的清除等级以数据库为准、文案按代码刷新；代码里已删除的报警码从库里移除，
-  移除前逐条写 Warn 日志。启动日志汇总各清除等级的条数。
-- 老库缺 RequiredLevel 列时启动自动补列（ALTER TABLE，默认 0 = 操作员），无需手动迁移，升级后行为不变。
-- UpdateRequiredLevelsAsync：写库后更新内存字典并立即生效，每条修改写入「操作日志」（用户、报警码、旧等级 → 新等级），
-  触发 RequiredLevelsChanged。
-
-[新增 — AlarmPermissionService（IAlarmPermissionService）]
-- 按当前登录用户等级与报警码清除等级判定手动清除/复位；ClearAllAuthorized 只清有权限的并记录跳过条数。
-- AddAlarmServices 中自动注册为单例，无需手写。仅服务于人为操作入口，程序自动清除（安全门关闭、硬件自恢复等）不受控。
-
-[新增 — HardwareInputMonitor：门锁手动接管]
-- 实现 GetDoorLockOutputs / IsLockManualOverride / TrySetLockManualOverride：仅无上锁许可、无预上锁时允许接管；
-  接管期间不写出、不对账门锁输出；预上锁、取得上锁许可、退出接管、Dispose 时自动收回并按期望重写。
-
-[行为变更 / 消费项目注意]
-- 代码中已删除的报警码会在启动时从 AlarmDefinitions 表删除（报警历史记录不受影响）。
-- 原先通过数据库新增或覆盖的报警码不再生效，如有需要请改为在代码中定义 [AlarmInfo]。
-
-v1.0.8 (2026-09-28) — HardwareInputMonitor 支持安全门门锁输出；Safety 线程常驻，检测受上锁许可约束
-
-[新增 — 门锁]
-- 锁输出统一按"上锁许可 &amp;&amp; IsEnabled &amp;&amp; !IsMuted"计算，按门配置的有效电平写出；
-  启用/许可/屏蔽变化、热重载（DeviceAdded）时重写，Safety 循环每 500ms 回读对账。
-- 写失败触发 HW_SAFE_004，恢复后自动清除；StopSafetyMonitoring / Dispose 时全部解锁。
-- 锁定监控型门（SignalValidOnlyWhenLocked）：记录上锁时刻，未上锁或未稳定时不扫描、快照 IsActive 为 null、
-  门禁检查视为"门锁未吸合确认"；确认通过时补发恢复事件清除开门报警（这类门解锁后等不到恢复沿）。
-- 预上锁（PreLockAndVerifyAsync）：只给锁输出上电、不打开开门检测，等最慢一扇门稳定后检查。
-- ArmSafetyDoorAsync：确认期间扫描线程跳过该门；失败时重新停用该门（解锁）并报 HW_SAFE_003，不连带暂停整机。
-
-[变更 — Safety 检测]
-- Safety 组触发额外要求持有上锁许可：Idle/Paused/报警等状态下开门不再报警（门关闭的恢复事件照常发布）。
-- 重新启用门、取得许可、取消屏蔽时重新布防：门若仍开着，下一轮扫描立即触发（修复"门开着启用/恢复运行不报警"）。
-- 仿真 IO（ReadInput 恒为 false）下跳过 Safety 扫描、门禁检查与输出对账，避免常闭门误报。
-
-[修复 — 监控失效自警]
-- IO 板卡缺失/断开也计入连续失败计数，达到阈值触发 HW_SAFE_002（原先仅延时重试、无任何报警）。
-- StartSafetyMonitoring 找不到 IO 板卡且配置了安全装置时触发 HW_SAFE_002（原先只写日志）。
-
-v1.0.7 (2026-09-23) — IOMappingService 解析 [Display(Order=, GroupName=)]，支撑 IO 调试页排序与分组
-
-[新增 — IOMappingService.ParseEnumToMap]
-- 在原有解析 [Description]/[Browsable] 的基础上，同时解析 [Display(Order=n, GroupName="...")]
-  写入 IOMapInfo.Order / Category（依赖 PF.Core 1.0.30 新增的这两个字段）。
-- 均为可选特性，不打就沿用旧行为（按物理索引排序、归入调用方约定的默认分组）。
-
-v1.0.6 (2026-09-14) — 修复三层挂载链（卡→轴→辅助编码器）下子设备可能永久附着失败
-
-[修复 — 拓扑挂载]
-- LoadAndInitializeAsync 的设备初始化分层由"ParentDeviceId 是否为空"二分成顶级/子级两层，
-  改为按 ParentDeviceId 依赖关系逐层展开（新增私有 BuildDependencyLayers）：第1层仍是
-  ParentDeviceId 为空的顶级设备，之后每层取"父设备已归入更早层"的配置，直到分完，支持任意
-  深度的挂载链。
-- 触发原因：辅助编码器（IAuxEncoder）可以挂在某根轴下（卡→轴→编码器，三层），但轴本身也是
-  "ParentDeviceId 非空"的子级设备——二分法把轴和挂在轴下的编码器分进同一批。这一批内部的
-  处理顺序取决于配置从数据库读出的顺序，并不保证轴排在编码器前面；一旦编码器先于轴被激活，
-  当时其父轴还不在活跃设备表里，TryAttachTo 根本不会被调用（因为该处仅在拿到非空父设备实例
-  时才尝试挂载），编码器的 Parent 永久为 null，之后任何通道操作都会抛
-  "尚未挂载到运动控制卡或轴"异常，且没有自动重试或后续修复路径。
-- 影响面：此前该路径的编码器操作(SetPositionAsync 等) 本就依赖挂载成功，同样受这个隐患
-  影响，只是没有实测场景触发；PF.Infrastructure 1.0.19 起轴的硬件位置锁存（LatchType=1）
-  开始依赖编码器挂载成功，此问题必须一并修掉。日志/Splash 进度文案由固定的"第1层/第2层"
-  改为按实际层数动态生成"第N层"，语义不变。
-
-子包版本对照：PF.Infrastructure 1.0.18→1.0.19；其余子包本次无变化。
-
-v1.0.5 (2026-08-17) — HardwareManagerService 父设备泛化：宿主不再窄化为运动控制卡
-
-[变更 — 拓扑挂载]
-- 第 2 层子设备的父设备引用由 IMotionCard 放宽为 IHardwareDevice，挂载改调用
-  IAttachedDevice.TryAttachTo（配合 PF.Core 1.0.10 的契约泛化）。此前父设备被 as IMotionCard
-  窄化，采集卡这类新宿主的子设备（线阵相机）永远拿不到父引用；现在"能不能当父设备"由子设备
-  自己的 IAttachedDevice&lt;TParent&gt; 声明决定，本服务不认识任何具体设备接口，再加宿主种类无需改此处。
-- 分层规则未变，仍只看 ParentDeviceId 是否为空：第 1 层是运动控制卡、图像采集卡等宿主设备，
-  以及不挂父设备的独立设备（扫码枪、光源、GigE/USB 直连相机）；第 2 层是挂卡的轴/IO、
-  挂采集卡的线阵相机等。父设备未激活或未连接时，子设备仍会实例化并进入活跃列表（保证 UI 可见）。
-- 挂载类型不匹配（如把相机的父设备错填成运动控制卡）只记 Warn 并说明父设备实际类型，
-  设备以未挂载状态进入活跃列表，不抛异常、不中断整机初始化——配置写错不该让设备全都起不来。
-
-[新增 — 可诊断性]
-- 每层初始化前把该层设备列成 "DeviceId(实现类名)" 记一条 Info 日志。此前"某设备没出现在调试
-  树里"只能靠猜是配置没进库、IsEnabled 没开、还是工厂没注册；现在对比两层名单即可定位。
-- Splash 进度文案同步更新为"板卡/采集卡/独立设备"与"轴/IO/挂卡相机"。
-
-v1.0.4 (2026-07-15) — 安全监控自警/三色灯死锁/同步服务竞态修复
-
-[修复]
-- HardwareInputMonitor：底层 ReadInput 出错返回 null（板卡封装不抛异常的路径）现计入
-  连续失败计数，连续 5 次触发 MonitorFailure 自警、恢复后自动清警——此前该自警只在
-  异常路径累加，实际永远不会触发，安全门 IO 持续读取失败时既无检测也无报警。
-- TowerLightService：IsBuzzerMuted 写入与构造函数读取由 GetAwaiter().GetResult()
-  改为后台任务 + ConfigureAwait(false)，消除从 UI 线程设置静音开关时的
-  sync-over-async 死锁风险。
-- StationSyncService：ResetScope/ResetSingleSignal 的旧广播令牌由"取消后立即 Dispose"
-  改为 Drain 屏障归零后再释放（Drain 超时则交 GC），消除飞行中的 WaitAsync 恰好在用
-  旧令牌构建 linked token 时的 ObjectDisposedException 竞态。
-
-v1.0.3 (2026-07-07) — 通讯管理服务 + 日志/硬件服务健壮性修复
-
-[新增]
-- CommunicationManagerService：结构对齐 HardwareManagerService，支持 AutoStart 开关，
-  统一管理 TCP/串口/文件传输等通讯实例的注册、启停与生命周期。
-
-[修复]
-- LogService.ProcessLogQueueAsync 加 while(!_disposed) 重启壳 + 单条日志 try/catch，
-  订阅者异常不再永久杀死日志消费任务（对齐 AlarmService 既有范本）；
-  生产者-消费者队列由 BlockingCollection 迁移至 Channel&lt;LogEntry&gt;。
-- HardwareManagerService._configLock：锁内仅同步操作、await 移到锁外，避免长时间持锁；
-  GetAllConfigs 返回防御性副本。
-- ParamService 仓储工厂缓存编译表达式，消除高频反射开销。
-- Alarm/Log/Production 三服务实现 IAsyncDisposable。
-- 系统性 Debug.WriteLine（Release 下被编译器裁掉）问题修复：HardwareManagerService/
-  UserService 改用已有的 _logger/_systemLogger，其余无 logger 可用处改用 Trace.WriteLine。
-
-v1.0.2 (2026-06-17) — 报警服务全链路 SECS/GEM 字段透传 + LogService 初始化 Bug 修复
-
-[AlarmService — 新功能]
-- TriggerAlarm：构造 AlarmRecord 时补填 MessageEn / MessageID / MessageIDHex，
-  触发的报警记录完整携带 SECS/GEM 上传所需元数据，无需上传侧二次查字典。
-- GetHistoryAlarms：历史记录从数据库映射时同步补填三个新字段，
-  历史查询结果与实时报警记录字段保持一致。
-
-[AlarmDictionaryService — 新功能]
-- 反射扫描路径（代码内置报警）：从 [AlarmInfo] 特性读取 MessageEn / MessageID /
-  MessageIDHex 并写入 AlarmInfo 模型。
-- 数据库加载路径（AlarmDefinitions 扩展报警）：同步从 AlarmDefinitionEntity
-  映射 MessageEn / MessageID / MessageIDHex。
-- 兜底路径（未知报警码）：返回默认值 MessageID=-1 / MessageIDHex="NoneError"，
-  保证上传侧收到的字段始终非 null。
-
-[LogService — Bug 修复]
-- 修复初始化顺序错误：_log4netLogger 赋值移至 InitializeLog4Net() 调用之后，
-  修复旧版中因 log4net 未完成初始化即赋值导致 logger 可能为 null 的问题，
-  表现为启动阶段前几条日志静默丢失。
-
-v1.0.1 - 框架初始独立版本
+- TowerLightDoWriter：IO 板卡不可用警告只在状态变化时记一次；板卡重连后按当前状态重写输出。
+- TowerLightService：蜂鸣器屏蔽参数改按实体全名写入（此前框架内无法解析）。
+- AppTimerService：每月任务日期超过当月天数时取月末。LogService：异常堆栈不再出现两遍。
+- UserService：超级用户校验改用 PF.Core.Constants.SuperUserCredential（用户名忽略首尾空格，其余规则不变）。
 		</PackageReleaseNotes>
 		<Description>核心业务服务：ParamService、HardwareManagerService、ProductionDataService、LogService</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

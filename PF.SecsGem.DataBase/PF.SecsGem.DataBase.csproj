@@ -13,35 +13,18 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.0.3</Version>
+    <Version>2.0.0</Version>
     <PackageReleaseNotes>
-v1.0.3 (2026-07-07) — 工作单元(UoW)模式重构（破坏性变更）+ 诊断日志修复
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
-[破坏性变更]
-- ISecsGemDataBase：删除 GetRepository()/SaveChangesAsync()，新增 BeginScope() 返回
-  ISecsGemDbScope（新增接口：GetRepository&lt;T&gt;() + SaveChangesAsync，实现 IDisposable）。
-  SecsGemDataBaseManger 重写为持有 DbContextOptions 单例，每次 BeginScope 创建独立短
-  生命周期 DbContext + 仓储缓存，多线程调用各自隔离，避免 DbContext 线程不安全问题。
-  下游消费方（PF.Modules.SecsGem 已同步）需将 GetRepository()/SaveChangesAsync() 调用
-  改为 using var scope = db.BeginScope(); ... scope.GetRepository&lt;T&gt;() ...
-  await scope.SaveChangesAsync();
-- InitializationDataBase 改为独立短 context 执行，不再经过共享作用域。
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
-[修复]
-- InitializationDataBase 失败诊断日志误用 Debug.WriteLine（Release 下被编译器裁掉），
-  改用 Trace.WriteLine。
-
-v1.0.2 (2026-06-17) — ReportIDEntity 空值容错 + LinkVID 注解修正
-
-[Bug 修复]
-- ReportIDEntity.LinkVID 加 [Required(AllowEmptyStrings = true)] 注解：
-  修复 EF Core 将空数组序列化为 NULL 后反序列化时抛出 NullReferenceException 的问题。
-- ToReportID() 扩展方法增加 null 保护：
-  若 entity.LinkVID 为 null（数据库旧数据或迁移前记录），自动替换为 uint[0]，
-  防止构造 ReportID 时因 null 数组导致 VID 链路初始化崩溃。
-
-v1.0.1 - 框架初始独立版本
-    </PackageReleaseNotes>
+[变更]
+- SecsGemDataBaseManger.InitializationDataBase 失败时记录原因到 LastInitializationError，由调用方（PFApplicationBase 启动阶段 /
+  SecsGemModule）记日志与展示；建库改在启动第一步，SECS 机构首启不再报"读表失败"。
+		</PackageReleaseNotes>
     <Description>SECS/GEM 协议专用数据库层：EF Core 实体、DbContext、Repository</Description>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
   </PropertyGroup>

@@ -233,6 +233,10 @@ D:\PFConfig\PFAutoFrameWork\
 两个包源（`nuget.config`）：`nuget.org`（公共）+ 私有 BaGet `https://nuget.powerfocus.com.cn/v3/index.json`（源名 `PowerFocus_NuGet`）。
 **所有包版本在 `Directory.Packages.props` 中央管理，各 `.csproj` 不得指定版本号。**
 
+**框架自身包的版本**（2026-11-19 起）：除 `PF.Vendor.*` 外全部框架包统一为 **2.0.0**（框架大版本），各包 `<Version>` 仍写在自己的 `.csproj`。
+`PackageReleaseNotes` 只记录 2.0.0 起的变更；2.0.0 之前的记录在各项目目录下的 `历史版本记录.md`（不打进包）。
+之后某个包有改动只升它自己的补丁 / 次版本号；再做全框架不兼容升级时统一升主版本。Meta 元包每次子包升级后都要跟着重发。
+
 核心版本：Prism 9.0.537（其容器实现 `DryIoc.dll` 5.4.3 由 Prism.DryIoc 传递引入，无需显式声明）/ EF Core 9.0.18 / Stateless 5.20.1 / log4net 3.3.2 / NPOI 2.7.6 / Microsoft.Extensions.* 10.0.10 / System.Drawing.Common、System.IO.Ports、System.IO.Hashing、System.ServiceProcess.ServiceController 10.0.10
 
 两处版本天花板（升级时注意）：

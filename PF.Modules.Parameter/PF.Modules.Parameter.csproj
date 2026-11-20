@@ -13,174 +13,28 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>1.0.14</Version>
+		<Version>2.0.0</Version>
 		<PackageReleaseNotes>
-v1.0.14 (2026-11-18) — 新增模拟量模块参数视图（配合 PF.Infrastructure 1.0.37）；参数页修复合集
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
+
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
 [新增]
-- EtherCatAnalogIOParamView + Mapper，注册键 "EtherCatAnalogIO"：设备基本信息 + 节点号（留空 = 板卡本体）。
-  通道表不在此编辑（在硬件调试页「通道配置」）。
+- EtherCatAnalogIOParamView + Mapper（注册键 "EtherCatAnalogIO"）：设备基本信息 + 节点号（留空 = 板卡本体）。
 
 [修复 — 硬件参数被冲掉]
-- 各硬件参数 Mapper 提取时新建 ConnectionParameters，只写自己视图里的键：在参数页改一下轴号，AxisParam（轴参数）
-  就从配置里丢了；同类问题影响所有带"视图不编辑的键"的设备（模拟量 Channels 等）。
-  CommonChangeParamDialogViewModel 确认时统一把"原来有、提取结果没有"的键原样补回，各 Mapper 无需改动。
+- 各硬件参数 Mapper 提取时只写自己视图里的键，此前在参数页改一下轴号 AxisParam 就从配置里丢了；
+  CommonChangeParamDialogViewModel 确认时统一把"原来有、提取结果没有"的键原样补回。
 
-[修复 — 修改对话框]
-- 没有编辑视图的参数类型点「确认」毫无反应 → 提示"没有可用的编辑界面"。
-- 提取失败/异常时仍按"确认"关闭、页面被标记为有修改 → 改为提示错误并保持对话框打开。
-
-[修复 — 参数页]
-- 脏状态按"与数据库基准的差异"判定（ParamItemViewModel.MarkClean/IsDirty）：此前任何属性变化都标脏、改回原值也不消；
-  「保存」此前把整页全部重写一遍，"成功保存 N 个""需重启生效"提示在没改任何硬件参数时也弹 → 现只保存改过的项。
-- 改用户名后保存：此前按新名称新增一条、旧账号仍留在库里（旧用户名照样能登录）→ 保存后删除旧名称记录。
-- 新增/改名与已有参数重名：此前 SetParamAsync 按名称 upsert，静默覆盖那条记录（可把别人的账号覆盖掉）→ 保存前整体校验，冲突则一条都不存。
-- 其他功能修改参数（调试页存轴参数等）触发自动重载，会把本页未保存的编辑静默丢掉 → 有未保存修改时只提示不重载；
-  本页批量保存期间不再逐条重载。
-- 有未保存修改时切换大类/子分类、点刷新会静默丢弃修改 → 先确认（离开页面原本就有确认）。
-- 删除尚未保存的新增行报"删除失败"且删不掉 → 直接从列表移除；改过名未保存的项按原名删除数据库记录。
-
-v1.0.13 (2026-11-04) — 参数页「描述」列移到最后一列并占满剩余宽度
-
-[界面]
-- 参数页「描述」列移到最后一列，宽度改为 *（原为 Auto，夹在名称与数据类型之间）；其余为 XAML 属性顺序整理，无功能变化。
-
-v1.0.12 (2026-10-31) — 海康网络摄像机参数视图新增「存图」分组；同步 PF.Core 1.0.34
-
-[新增 — 存图格式 / 存图目录]
-- HikNetworkCameraParamView 与映射器追加 SaveFormat（Bmp / Jpeg / Tiff / Png，留空按 Jpeg）与 SaveDirectory
-  （留空用设备默认目录 {配置目录}\NetworkCamera\{设备ID}）。这两个是设备参数，不进系统参数表。
-
-v1.0.11 (2026-10-31) — 海康网络摄像机参数视图；同步 PF.Core 1.0.33
-
-[新增 — HikNetworkCameraParamView]
-- ImplementationClassName = "HikNetworkCamera" 的参数视图 + 映射器：连接参数（IP/端口/用户名/密码/通道号，
-  通道 0 = 自动选第一个，NVR 数字通道建议显式指定）+ 采集（抓图缓冲区 MB，不足自动翻倍上限 64MB）。
-  与调试页编辑的是同一份 HardwareConfig，仅入口与重载时机不同。
-
-v1.0.10 (2026-10-23) — 参数页加载遮罩、值列直接显示参数值；海康线阵相机新增「像素精度(μm/行)」；海康 SDK 扫码枪新增「用户参数组」
-
-[修复 — ParameterView 加载卡顿]
-- 参数类型初始化与参数项构建移到后台线程，加载期间显示遮罩，避免进入硬件配置等大分类时界面卡 1~2 秒；
-  快速切换分类时只采用最后一次加载的结果。
-
-[变更 — ParameterView 值列]
-- 「值」列不再显示原始 JSON：简单类型直接显示值（布尔显示 是/否），复杂类型按参数视图的显示名展开为
-  "名称=值；名称=值"，密码类字段打码，超过 300 字符截断。值列加宽并提供完整内容的悬浮提示。
-
-[新增 — MvCodeReaderBarcodeScanParamView]
-- 新增「用户参数组」（UserSet），读写 ConnectionParameters["UserSet"]，对应 PF.Infrastructure 1.0.30
-  MvCodeReaderBarcodeScan 连接时加载的用户参数组。
-
-[新增 — HikLineScanCameraParamView / HikLineScanCameraParamViewMapper]
-- 新增 LineSpacingUm（采集分类，显示名「像素精度(μm/行)」），读写 ConnectionParameters["LineSpacingUm"]，
-  留空 = 未配置。配合 PF.Infrastructure 1.0.30：相机据此给出行间距，线扫模组校验曝光不超过行周期。
-- 修复隐患：映射器保存时整体重建 ConnectionParameters，此前手动加进配置的 LineSpacingUm 会在界面保存一次后丢失。
-
-v1.0.9 (2026-09-15) — 修复 RuntimeIdentifier 误设导致的处理器架构标记污染
-
-[修复]
-- 框架仓库共享的 Common.Desktop.props 曾错误设置 RuntimeIdentifier=win-x64（该属性只应用于
-  真正消费 PF.Vendor.Infrastructure 的项目，本仓库自身没有项目这样做），导致 2026-09-15 早间
-  批量打包时本包连同其余 10 个 net8.0-windows 库一起被打上 win-x64 专属架构标记，AnyCPU
-  消费项目引用时报"处理器架构不匹配"警告。本次仅移除该属性重新打包，代码无变化。
-
-v1.0.8 (2026-09-14) — 新增辅助编码器的硬件参数视图
-
-[新增]
-- EtherCatAuxEncoderParamView + Mapper，注册键 "EtherCatAuxEncoder"：设备基本信息 +
-  连接参数（通道号 Channel、编码器倍率 Multiplier，缺省 2）。ParentDeviceId 既可填运动控制卡
-  DeviceId（挂在卡下单独使用），也可填某根轴的 DeviceId（挂在该轴下随轴分组）——两种拓扑填法
-  在这一份参数视图里没有区别，由 PF.Core 1.0.18 的 IEncoderCarrier 在挂载时按类型自动解析。
-- 配合 PF.Infrastructure 1.0.17 新增的 EtherCatAuxEncoder 工厂注册使用：在硬件配置界面新增
-  设备、ImplementationClassName 选 "EtherCatAuxEncoder" 后，即可在此视图里改通道号和倍率，
-  不必手改配置 JSON。
-
-v1.0.7 (2026-08-28) — 界面操作日志接入：键目录 + 全量控件标记
-
-[新增]
-- OperationLogKeysParameter 键目录（[OperationLogKeyCatalog]，内层嵌套类名 = 页面名，const 字段 = Key，
-  DescriptionAttribute = 默认描述），模块 OnInitialized 里 OperationLogKeyRegistry.
-  RegisterAssembly(Assembly.GetExecutingAssembly()) 一行注册。
-- 本模块页面根挂 OperationLog.PageName、可交互控件挂 OperationLog.Key：2 个页面
-  11 个键，其中 6 个关键操作（恢复默认、修改参数数据类型、新增/删除/保存参数、对话框确认）默认启用记录；其余默认关闭，
-  按项目在配置目录的 OperationLogConfig.xlsx 里勾选 Enabled 列即可打开，改过的值永远优先。
-- 未标记/不支持的控件（密码框、Slider、DatePicker、页内导航选择器等）不产生任何日志。
-
-
-v1.0.6 (2026-08-24) — 光源控制器参数视图支持通道数配置
-
-[新增]
-- CTSLightControllerParamView / HikComLightControllerParamView 新增"通道数"字段
-  （Category=连接参数），对应 ConnectionParameters["ChannelCount"]；两个 Mapper 同步读写，
-  缺省 4，与 PF.Infrastructure 1.0.12 的工厂缺省值一致。
-- 配合 PF.Core 1.0.14 新增的 ILightController.ChannelCount：此前通道数只能手改配置 JSON，
-  现可在参数界面的硬件配置对话框直接填写。
-
-v1.0.5 (2026-08-17) — 新增海康串口光源控制器的硬件参数视图
-
-[新增]
-- HikComLightControllerParamView + Mapper，注册键 "HikComLightController"：
-  设备基本信息 + 连接参数（串口通讯实例ID）。
-  串口参数（波特率/校验位/数据位/停止位）不在硬件参数里配——该设备复用通讯层的串口实例，
-  这里只填指向那条通讯配置的 InstanceId，串口本身在「通讯配置」里改。
-  没有这一条时，该实现类的硬件配置在参数界面上打不开（ViewFactory 按
-  ImplementationClassName 路由，未注册直接返回 null）。
-
-[破坏性变更 — 康视达光源注册键拼写订正]
-- 旧注册键 "CTS_LightControoller"（多一个 o）订正为 "CTS_LightController"，不保留兼容键。
-- 起因是一个必现故障：CTSLightControllerParamViewMapper.ExtractSpecificData 写回的
-  ImplementationClassName 一直是拼写正确的 "CTS_LightController"，而注册键与现场配置是
-  拼错的那个，两者对不上——在参数界面编辑并保存一次康视达光源，保存后的配置就再也匹配不到
-  硬件工厂，重启后该设备实例化不出来。修的方向是统一到正确拼写，而不是把映射器改成错的。
-- 【升级须知】现场库里已有的硬件配置行仍带旧串，必须同步订正，否则该光源实例化不出来：
-  · 消费项目的 App.xaml.cs：RegisterFactory 的键改成 "CTS_LightController"；
-  · 现场数据库：把该设备配置的 ImplementationClassName 改成 "CTS_LightController"
-    （或在硬件参数界面重建一次该设备）。
-- Category 由 "LightController" 改为 "Light"，与默认配置一致，编辑保存不再翻转该字段。
-
-v1.0.4 (2026-08-17) — 新增海康线阵相机 / 图像采集卡的硬件参数视图
-
-[新增]
-- HikFrameGrabberCardParamView + Mapper，注册键 "HikFrameGrabberCard"：
-  设备基本信息 + 设备选定（序列号优先，留空按枚举索引选定）。采集卡是顶级设备，无父设备。
-- HikLineScanCameraParamView + Mapper，注册键 "HikLineScanCamera"：
-  设备基本信息（含"父设备ID(采集卡)"）+ 设备选定（序列号/枚举索引）+ 采集（图像缓存节点数）。
-  · 父设备ID填采集卡的设备ID = 经采集卡取流（CameraLink/CXP/XoF），帧长与帧触发下发到采集卡
-    节点树；留空 = GigE/USB 直连，下发到相机自身节点树。配置拓扑本身即表达链路类型，
-    因此【没有】单独的"链路类型"字段。
-  · 图像缓存节点数直接决定 SDK 侧内存占用（≈ 单帧字节数 × 本值），线扫大帧下必须按实际帧长
-    下调，故做成配置项；小于 2 由设备层按 2 处理。
-- 曝光、增益、行触发、编码器等【不在硬件参数里配】：它们随配方变化，由机构层按扫描任务下发，
-  调试阶段用线阵相机调试面板逐项试（见 PF.Modules.Debug 1.0.7）。
-
-v1.0.3 (2026-07-09) — 参数模块侧边栏图标调整
-
-[变更]
-- 系统配置参数 Icon：SettingIcon → Tune
-- 硬件参数 Icon：DebugIcon → Chip
-  配合 PF.Application.Base v1.0.3 新增的侧边栏悬停描边动画，原图标描边观感差或与其它
-  调试页图标重复，一并替换。
-
-v1.0.2 (2026-07-07) — Keyence SDK 扫码枪参数视图 + 计数竞态修复
-
-[新增]
-- KeyenceSdkBarcodeScanParamView + KeyenceSdkBarcodeScanParamViewMapper：
-  基恩士 SDK 扫码枪的参数配置视图与映射器，接入 ParameterModule 硬件配置类型注册。
-- MvCodeReaderBarcodeScanParamView + MvCodeReaderBarcodeScanParamViewMapper：
-  补齐海康 MvCodeReaderSDK 扫码枪的参数配置视图（此前硬件工厂已注册但界面无法选中/配置）。
-
-[删除]
-- HKSdkBarcodeScanParamView + HKSdkBarcodeScanParamViewMapper：对应的 HKSdkBarcodeScan
-  硬件实现从未注册工厂、全仓库零引用，随 PF.Infrastructure 一并删除，ParameterModule 中
-  "HKSdkBarcodeScan" 注册项替换为 "MvCodeReaderBarcodeScan"。
-
-[修复]
-- ParameterViewModel.DeleteParameterAsync：Parameters.Remove 经 Dispatcher.InvokeAsync
-  异步执行，但 UpdateCounts() 此前在其之前同步调用，导致删除后计数短暂偏高；现改为在
-  InvokeAsync 回调内、Remove 之后再调用 UpdateCounts()。
-
-v1.0.1 - 框架初始独立版本
+[修复 — 修改对话框 / 参数页]
+- 没有编辑视图的参数类型点「确认」给出提示；提取失败时保持对话框打开。
+- 参数 JSON 损坏时提示"无法编辑"，不再用默认值覆盖原值。
+- 脏状态按与数据库基准的差异判定，「保存」只保存改过的项；改用户名保存后删除旧名称记录（此前旧用户名照样能登录）；
+  新增 / 改名与已有参数重名时整体拒绝保存（此前静默覆盖）。
+- 有未保存修改时：外部触发的自动重载只提示不重载；切换分类 / 刷新先确认。删除未保存的新增行直接移除。
+- 命令层校验权限（不只靠界面禁用按钮）。
 		</PackageReleaseNotes>
 		<Description>参数管理模块：硬件与系统参数的可视化编辑与验证</Description>
 		<GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

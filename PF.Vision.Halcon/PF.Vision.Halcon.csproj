@@ -3,138 +3,19 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <Version>1.1.0</Version>
+    <Version>2.0.0</Version>
     <PackageReleaseNotes>
-v1.1.0 (2026-10-10) — 视觉资产包（.vpk）取代 .roipk；修复 HALCON 区域裁剪尺寸按线程缓存导致 ROI 被裁空、进程启动后第一次执行过程失败（含破坏性变更）
+v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
-[新增 — 视觉资产包 PF.Vision.Halcon.Packaging]
-- 包为 zip（.vpk），根目录 manifest.json 记录格式版本、布局 id/版本、修订号、保存时间/保存人与全部条目；
-  读取一律以 manifest 为准。设计说明见框架仓库 DOC/视觉资产包设计稿.md。
-- 布局（目录配置）由项目在代码里声明：VisionPackageLayout.Create(id, version).Image/Roi/ShapeModel/Data&lt;T&gt;/File…Build()，
-  声明时校验 id、依赖存在、依赖类型、无环；自定义条目类型用 VisionPackage.RegisterKind 注册。
-- 内置条目：原图（默认无损 PNG，可选原文件原样 / TIFF / BMP / JPEG）、ROI（原图坐标）、形状模型（派生，由原图 + ROI
-  按建模参数生成）、Data&lt;T&gt;（宽松反序列化 + 可选 IVisionPackageData 自校验）、附件。
-- 依赖与一致性：条目记录生成/绘制时各依赖的指纹，状态 Missing / Ok / Stale / Invalid / Extra 沿依赖向下游传播；
-  换原图时按"同一文件 / 尺寸相同内容不同（ROI 需确认）/ 尺寸不同（ROI 失效需重画）"处理；派生条目可重新生成。
-- VisionPackageSession：只在内存 + 临时目录里编辑，Save 前自动生成派生条目并强制校验，写临时文件后替换原文件，
-  修订号 +1；不保存直接 Dispose 即放弃修改。
-- VisionPackageReader（生产）：校验格式版本、布局 id 与版本（完全相等），按需只解压单个条目并核对内容哈希。
-- AddVisionPackageServices(directory) + VisionPackage.PathOf(name) 按名字存取。
-- 布局条目可用 editorView（Data&lt;T&gt; / Entry 的可选参数，LayoutEntry.EditorView）指定项目自己的编辑页，覆盖默认页。
+[版本说明]
+- 框架大版本：除 PF.Vendor.* 外的全部框架包统一为 2.0.0，须一起升级（各包之间按 2.0.0 互相依赖，不要与 1.x 混用）。
+- 2.0.0 之前的版本记录移至本项目目录下的「历史版本记录.md」，此处只记录 2.0.0 起的变更。
 
-[破坏性变更 — ShapeTemplateService]
-- 删除 SaveTemplate / LoadTemplate / LoadTemplateForEdit / LoadTemplateForEditFromPath / TemplateDirectory /
-  GetAvailableTemplateNames 与 ShapeTemplateEditSession；只保留 CreateTemplate / FindMatches / GetMatchedContour。
-  形状模型改为视觉资产包的 ShapeModel 条目（编辑用 VisionPackageSession，生产读取用 VisionPackageReader.LoadShapeModel）。
-- AddShapeTemplateServices 改为 AddVisionPackageServices。旧 .roipk 不再支持，需重建。
-
-[修复 — 调试服务器开着时 Debug 引擎所有执行卡在过程入口]
-- 原先启动调试服务器时引擎级等待连接生效，且每次调用都 SetWaitForDebugConnection(true)：服务器没停时，任何经
-  Debug 引擎的执行都停在入口，只有 HDevelop 附加后点"继续"才往下走。
-- 现在引擎属性 debug_wait_for_connection 设为 false；是否等待由请求决定：VisionRequest.WaitForDebugConnection
-  （需 PF.Core 1.0.32+）且引擎配置允许、调试服务器已启动时才等。HalconDebugService.RunTestAsync（"调试执行"）带该标志，
-  其它执行直接跑（HDevelop 已附加时仍会停在断点）。
-
-[修复 — 严重：HALCON 区域裁剪尺寸按线程缓存]
-- clip_region=true（默认）时，新生成的区域裁剪到"当前图像尺寸"，而该尺寸按线程缓存：线程第一次用 HALCON 时记下当时的
-  全局 width/height（未读图时 128×128），之后别的线程读了大图也不会变。后果（11000×16384 图实测）：
-  · 图在后台线程读、UI 线程上生成 ROI 区域面积为 0（ROI 编辑器看不到拖拽预览、算外接矩形报"区域为空"）；
-  · 视觉引擎工作线程缓存了小尺寸，进程启动后第一次执行过程 reduce_domain 得到空图，匹配必失败，执行过一次后才正常。
-- 新增 HalconThreadContext：RoiRegionBuilder / ShapeTemplateService 在当前线程关闭区域裁剪（EnsureRegionClipOff）；
-  HalconVisionService 执行过程前把工作线程裁剪尺寸设成输入图像尺寸（SyncClipSize），保留裁剪语义、与 HDevelop 一致。
-
-v1.0.5 (2026-10-09) — dict 控制输出夹带图标量时拆分返回
-
-[修复 — HalconVisionService 控制输出收集]
-- 过程用 set_dict_object 往输出 dict 里塞了 Region/Image 等图标量时，dict_to_json 直接报 H1301，
-  此前整个输出只剩一串 handle 字符串，元组和图标量全部丢失。现拆成两半：
-  · 图标量放进 IconicOutputs，键为 "{参数名}.{dict 键}"（如 "OutDict.DieRegions"），所有权归调用方，
-    与其它 IconicOutputs 一致，用完必须释放；
-  · 其余元组键照常转成 JSON 字符串，作为该控制输出的值。
-- 不含图标量的 dict、普通元组、非 dict 的 handle 行为不变。
-
-v1.0.4 (2026-09-07) — 模板参考图改用 JPEG + 新增不透明元数据通道 + dict 控制输出转 JSON
-
-[变更 — ShapeTemplateService]
-- 模板参考图（reference.png → reference.jpg）改用 JPEG 有损压缩（质量 90）。这张图只给人看
-  "ROI 画在哪"，不参与匹配（匹配靠同包内的 model.shm），线扫相机原图分辨率下无损 PNG 常是
-  .roipk 体积的大头。未做双格式回退读取——LoadEditSessionFromZip 找不到 reference.jpg 直接
-  抛异常提示"可能是旧版本模板"，旧模板需重新保存一次才能瘦身。
-
-[新增 — ShapeTemplateService]
-- SaveTemplate 新增可选参数 extraMetadataJson：调用方想跟着模板一起存的任意 JSON 文本
-  （比如"这个 ROI 对应网格第几行第几列"），本类不解释内容，原样打进 .roipk 的 meta.json
-  条目；LoadTemplateForEdit/LoadEditSessionFromZip 原样读回（ShapeTemplateEditSession 新增
-  ExtraMetadataJson 字段）。老模板没有这个条目时读到 null，不当错误处理，兼容既有模板包。
-
-[修复 — HalconVisionService.HTupleToValue]
-- HTuple 的 HANDLE 类型（目前框架内唯一用法是 dict）转 Control 输出值时此前落到默认分支
-  只调 ToString()，dict 内容会丢失或显示乱码；新增分支用 DictToJson 转成 JSON 字符串交给
-  上层，非 dict 的 handle 退回原 ToString()。
-
-v1.0.3 (2026-08-27) — 修复 ShapeTemplateService.FindMatches 找模板必报 HALCON #1208
-
-[修复 — 严重]
-- FindMatches 里 NumLevels==0 时错误地把控制参数传成字符串 "auto"，抄的是
-  CreateTemplate/CreateShapeModel 那边"NumLevels 默认值是 auto"的惯例。但
-  find_shape_model 算子的 NumLevels 参数默认值本来就是整数 0（0 本身就是"自动计算金字塔层数"
-  的哨兵值，算子文档没说它接受 "auto" 字符串），传字符串直接触发
-  "HALCON error #1208: Wrong type of control parameter 8 in operator find_shape_model"，
-  ROI 模板匹配（验证模板/联合试跑里调用 FindMatches 的地方）全部报错，无法找到任何模板。
-  改为直接传 options.NumLevels（int，隐式转 HTuple），0/非 0 都不再做字符串转换。
-
-v1.0.2 (2026-08-21) — 调试服务与 Debug 引擎解耦（含构造函数破坏性变更）
-
-[破坏性变更 — HalconDebugService]
-- 构造函数新增第三参 string procedureDirectory。走 AddVisionServices 注册的项目不受影响
-  （扩展方法已同步传入，其对外签名未变）；手动 new HalconDebugService(...) 的地方必须补参数。
-
-[修复 — 只读 API 不再凭空拉起 Debug 引擎]
-- GetProcedureSignatureAsync / GetAvailableProcedures / LaunchHDevelop 原先都走
-  GetOrCreate(EngineMode.Debug)，只为拿过程目录这一个字符串。代价是生产机上每次开机多出一个
-  HDevEngine + 一条 LongRunning 专用系统线程 + 一个递归 FileSystemWatcher，永不使用。
-  现在三者只用注入的目录，GetDebugEngine() 仅剩 EnableDebugServerAsync / ForceReloadAsync /
-  RunTestAsync 三个真正需要引擎的调用点。
-- 目录在构造函数中 Path.GetFullPath 规范化：LaunchHDevelop 会把它拼进 HDevelop.exe 的
-  -external_proc_path 命令行，HALCON C 层不保证处理双斜杠/混合斜杠。
-
-[修复 — 子目录里的过程取不到签名]
-- 过程查找原先只看顶层，而过程枚举是 AllDirectories 递归的：子目录里的过程能出现在列表中，
-  选中却解析不出参数。新增 Internal/HdevProcedureCatalog 统一两侧规则，查找优先级为
-  顶层 .hdvp → 子目录 .hdvp → 顶层 .hdev → 子目录 .hdev（.hdvp 全局优先，与枚举去重规则一致）。
-  过程名里的 * 和 ? 不再被当通配符解释；多处同名时按路径排序取首个，结果可复现。
-
-[修复 — 未启动调试服务器时投作业会永久挂起]
-- Debug 引擎配置为 WaitForDebugConnection=true + InfiniteTimeSpan。原先只要向 Debug 引擎投作业
-  就会调 SetWaitForDebugConnection(true)，在过程入口等待一个永远不会到来的 HDevelop 连接，
-  又没有超时兜底，Worker 线程永久卡死。现加 DebugServerStarted 门控，服务器未启动时正常执行。
-
-[修复 — IsDebugServerActive 在引擎释放后失步]
-- 状态原先缓存在 HalconDebugService 本地字段，ReleaseAsync(EngineMode.Debug) 释放引擎后仍报
-  true，LaunchHDevelop 会去连一个已经不存在的调试服务器。改为以引擎上的 DebugServerStarted
-  为唯一真相，ActivePort / Password 一并跟随回落。
-- DisableDebugServerAsync 的守卫同步改写：引擎已释放时直接返回，不再为了停一个不存在的服务器
-  而把引擎重新拉起来。
-
-依赖：需 PF.Core 1.0.13+。
-
-v1.0.1 (2026-07-07) — 视觉引擎核心健壮性修复（7 项）
-
-[修复 — 严重]
-- Worker 线程防崩溃：过程文件缺失时 LoadProcedureFromFile 抛 FileNotFoundException 曾
-  杀死 Worker 循环，导致此后所有视觉调用永久挂起；DoLoad/DoExecute 现捕获全部异常转为
-  失败结果，Worker 循环外再加最后防线。
-- 真实超时/取消：原超时只覆盖入队、await tcs.Task 无限等待；SubmitAndAwaitAsync 现覆盖
-  排队+执行全程，超时返回失败结果，主动取消抛 OperationCanceledException。
-- HObject 泄漏：管线黑板改为持有独立句柄副本（CopyObj）并随管线结束统一释放；所有权契约
-  已写入 IVisionService/IVisionResult 文档（返回值归调用方所有，事件参数仅回调期间有效）。
-
-[修复 — 中]
-- 管线条件解析失败从"视为 true 继续"改为终止管线；HTupleToValue 按 HTuple.Type 分派；
-  FileSystemWatcher 加防抖；VisionContextManager 去掉与释放竞态的无锁快速路径。
-
-v1.0.0 - Halcon HDevEngine 视觉服务层初始版本：过程执行引擎、ROI 管理、视觉工作流管线、DI 扩展方法。
-    </PackageReleaseNotes>
+[修复 — 视觉结果偶发不一致]
+- HalconVisionService 作业改由专用线程同步消费（此前 async 消费在 await 后漂到线程池）：clip_region / 图像宽高等 HALCON
+  系统参数按线程生效，工具代码（ROI、建模板、资产包编辑器）在线程池上改过 clip_region 后，引擎作业落到这些线程上，
+  同一张图的区域面积、匹配结果会随线程变化。
+		</PackageReleaseNotes>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Description>Halcon HDevEngine 视觉服务层（Layer 04）：过程执行引擎、ROI 管理、视觉工作流管线；零 Prism.Wpf / WPF 依赖，可独立于 UI 引用。</Description>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
