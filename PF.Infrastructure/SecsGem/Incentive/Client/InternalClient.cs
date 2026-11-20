@@ -461,7 +461,15 @@ namespace PF.Infrastructure.SecsGem.Incentive
                             continue;
                         }
 
-                        MessageReceived?.Invoke(this, new SecsMessageReceivedEventArgs() { Message = message, Timestamp = DateTime.Now });
+                        var handler = MessageReceived;
+                        if (handler == null)
+                        {
+                            // 此前静默丢弃：Host 只看到 T3 超时，主程序日志里什么也没有
+                            _secsGemLogger.Warn($"收到 Host 主动消息 S{message.Stream}F{message.Function}，但当前没有订阅方（SECS 模组未完成初始化？），已丢弃，Host 侧将出现 T3 超时");
+                            continue;
+                        }
+
+                        handler(this, new SecsMessageReceivedEventArgs() { Message = message, Timestamp = DateTime.Now });
                     }
                     catch (Exception ex)
                     {

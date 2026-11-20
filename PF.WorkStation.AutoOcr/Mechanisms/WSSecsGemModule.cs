@@ -114,19 +114,29 @@ namespace PF.WorkStation.AutoOcr.Mechanisms
                 return false;
             }
 
-            if (!await _secsGemManger.InitializeAsync())
+            // 顺序：加载参数 → 准备处理器依赖 → 订阅 → 最后才连接。
+            // 本机通道一接通，SECS 服务就对 Host 开放 HSMS 监听，Host 的 S1F1 可能立刻到达；
+            // 此前连上之后才订阅，间隙里的报文被丢弃。连接失败时订阅保留：InternalClient 会后台重连，
+            // 服务后拉起时连上即可直接应答，不必重新初始化本模组
+            if (!await _secsGemManger.ParamsManager.InitializationParams())
             {
-                _secsGemlog.Error("SecsGem 物理层初始化连接失败。");
+                _secsGemlog.Error("SecsGem 参数初始化失败。");
                 return false;
             }
 
             _workStationDataModule = _containerProvider.Resolve<IMechanism>(nameof(WSDataModule)) as WSDataModule;
 
-            _secsGemlog.Info("SecsGem 连接成功。");
-
             // 绑定全局消息监听路由（-= 保护防止重复初始化时双重订阅）
             _secsGemManger.MessageReceived -= SecsGemManger_MessageReceived;
             _secsGemManger.MessageReceived += SecsGemManger_MessageReceived;
+
+            if (!await _secsGemManger.ConnectAsync())
+            {
+                _secsGemlog.Error("SecsGem 本机通道连接失败（SECS 服务未运行？），已转入后台自动重连，连上后自动恢复应答。");
+                return false;
+            }
+
+            _secsGemlog.Info("SecsGem 连接成功。");
 
             return true;
         }

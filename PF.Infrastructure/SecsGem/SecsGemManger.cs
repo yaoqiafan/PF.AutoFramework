@@ -105,18 +105,14 @@ namespace PF.Infrastructure.SecsGem
         {
             try
             {
-                bool res3 = await SecsGemClient.InitializationClient();
+                // 必须先订阅再连接，且连接失败也保留订阅：本机通道一接通，SECS 服务就对 Host 开放 HSMS 监听，
+                // Host 随即发来的 S1F1 等报文会立刻到达。此前连上之后才订阅，这段间隙里的报文无人接收被丢弃；
+                // 首连失败时更是从不订阅——服务后拉起、InternalClient 后台重连成功后，所有报文都没人处理，
+                // Host 发出 S1F1 等到 T3 超时不再重发，只能重新初始化 SECS 模组
+                _secsGemClient.MessageReceived -= OnSecsMessageReceived;
+                _secsGemClient.MessageReceived += OnSecsMessageReceived;
 
-                if (res3)
-                {
-                    _secsGemClient.MessageReceived -= OnSecsMessageReceived;
-                    _secsGemClient.MessageReceived += OnSecsMessageReceived;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                return await SecsGemClient.InitializationClient();
             }
             catch (Exception ex)
             {
