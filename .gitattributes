@@ -3,6 +3,11 @@
 ###############################################################################
 * text=auto
 
+# bat 必须 CRLF：bat + PowerShell 合体脚本在 LF 下 cmd 会错位解析、越过 exit /b 去执行 PowerShell 部分。
+# 不能依赖各机器的 core.autocrlf（设成 input/false，或从网页下载 zip 时检出的是 LF）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #
