@@ -17,15 +17,16 @@
 
 		<!-- ===== 有 C# <Reference> 的托管封装：走 lib，PackageReference 本包即可让消费项目在编译期
 		     直接拿到类型（配合 PF.Infrastructure 自身仍按 HintPath 编译，两边各自独立，互不冲突）。 ===== -->
-		<!-- CopyToOutputDirectory：Pack/PackagePath 只在 dotnet pack 时生效，本包又
-		     IncludeBuildOutput=false（没有自身编译产物可流转），本项目一旦被 ProjectReference
-		     （例如手工加引用、或联合库调试时误把本包也切成源码引用），这些文件不会被复制到
-		     引用方输出目录——两种消费路径都要覆盖，加上这条元数据后 PackageReference（走 NuGet
-		     runtimes 资产落地）和 ProjectReference（走本机制）都能正确落地，互不影响。 -->
-		<None Include="..\DLL\Infrastructure\Keyence.AutoID.SDK.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
-		<None Include="..\DLL\Infrastructure\Communication.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
-		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
-		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.xml" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<!-- 这几个托管封装【不加】CopyToOutputDirectory（原生库那组仍然加）：
+		     它们只被 PF.Infrastructure 使用，源码构建时 PF.Infrastructure 的 HintPath 引用默认复制到本地，
+		     经 ProjectReference 传到 Shell。联合库调试的消费项目同时 ProjectReference 了本项目和 PF.Infrastructure，
+		     这里再复制一份就是同名文件两个来源（DLL\Infrastructure\ 与 PF.Infrastructure\bin\），
+		     dotnet publish 报 NETSDK1152（2026-11-20 起去掉，此前只能用 ErrorOnDuplicatePublishOutputFiles=false 绕过）。
+		     Pack/PackagePath 不受影响：PackageReference 消费方照旧从 lib\net8.0\ 拿到。 -->
+		<None Include="..\DLL\Infrastructure\Keyence.AutoID.SDK.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\Communication.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\MvCodeReaderSDK.Net.xml" Pack="true" PackagePath="lib\net8.0\" />
 		<!-- MvCameraControl.Net.dll 本身是 AnyCPU 纯 IL（用 CorFlags 核实过，不是 COFF Machine 字段
 		     误导的 x86-only），装这个包能解决"托管封装编译期引用不到"的问题；但它内部仍会 P/Invoke
 		     真正的原生 MvCameraControl.dll——那个文件从来不在本仓库里，只存在于海康 MVS SDK
@@ -33,8 +34,8 @@
 		     项目，装完这个包仍需按 PF.Infrastructure.csproj 里那条部署注释，自行从 MVS SDK 安装目录
 		     把原生库复制到输出目录，CameraLink/CXP/XoF 链路还要另装 MVFG 采集卡驱动——这部分无法通过
 		     NuGet 解决，机器级 SDK 安装是唯一途径。 -->
-		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.dll" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
-		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.xml" Pack="true" PackagePath="lib\net8.0\" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.dll" Pack="true" PackagePath="lib\net8.0\" />
+		<None Include="..\DLL\Infrastructure\MvCameraControl.Net.xml" Pack="true" PackagePath="lib\net8.0\" />
 
 		<!-- ===== 纯 P/Invoke 或同一供应商 SDK 内部互相依赖、代码里没有任何 <Reference> 的原生库：
 		     走 runtimes\win-x64\native，只要装了本包就会落地到输出目录，不需要程序集引用。
