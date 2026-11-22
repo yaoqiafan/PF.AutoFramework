@@ -3,8 +3,15 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>2.1.0</Version>
+		<Version>2.1.1</Version>
 		<PackageReleaseNotes>
+v2.1.1 (2026-11-22) — SECS 报文文本显示修复
+
+[修复]
+- SecsGemMessage.ToString()（协议日志、托盘实时报文、调试页）：Binary 项此前显示为 "&lt;Binary System.Byte[]&gt;"，
+  多元素数值项（如 &lt;U4 1 2 3&gt;）显示为 "System.UInt32[]"。现在 Binary 按原始字节输出 SML 风格十六进制（0x01 0xFF），
+  数组按空格拼接元素；空列表显示 [0]（此前不显示项数）。只改显示文本，TypedValue / Data 不变。
+
 v2.1.0 (2026-11-20) — SECS 本机通道协议握手 + 链路配置由服务管理（设计稿 §4.1 / §9）
 
 [新增]

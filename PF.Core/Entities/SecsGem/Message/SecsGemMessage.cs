@@ -98,8 +98,10 @@ namespace PF.Core.Entities.SecsGem.Message
                 return;
             }
             string type = node.DataType.ToString(); // ����: L, U4, ASCII, BI
-            string count = node.SubNode?.Count > 0 ? $" [{node.SubNode.Count}]" : "";
-            string value = node.TypedValue != null ? $" {node.TypedValue}" : "";
+            // 列表一律写项数（空列表写 [0]，此前不写，看不出是空列表）；非列表项不写
+            string count = node.DataType == DataType.LIST ? $" [{node.SubNode?.Count ?? 0}]" : "";
+            string value = FormatValue(node);
+            if (value.Length > 0) value = " " + value;
 
             if (node.DataType ==DataType.LIST) // �б�����
             {
@@ -114,6 +116,30 @@ namespace PF.Core.Entities.SecsGem.Message
             {
                 sb.AppendLine($"{indentStr}<{type}{count}{value}>");
             }
+        }
+
+        /// <summary>
+        /// 数据项的值文本。此前直接拼 TypedValue：解析器给 Binary 存的是 byte[]、多元素数值项存的是 T[]，
+        /// 打印出来是 "System.Byte[]" / "System.UInt32[]"，日志和托盘实时报文里看不到实际内容。
+        /// Binary 一律按 <see cref="SecsGemNodeMessage.Data"/> 输出 SML 风格十六进制（0x01 0xFF），
+        /// 不看 TypedValue——构造函数给它存的是 "01 FF" 字符串、解析器存的是 byte[]，两者不一致；
+        /// 数组按空格拼接元素。只改显示，TypedValue 本身不变（业务代码按类型取值）。
+        /// </summary>
+        private static string FormatValue(SecsGemNodeMessage node)
+        {
+            if (node.DataType == DataType.Binary)
+            {
+                var data = node.Data ?? (node.TypedValue as byte[]);
+                return data == null ? "" : string.Join(" ", data.Select(b => $"0x{b:X2}"));
+            }
+
+            return node.TypedValue switch
+            {
+                null => "",
+                string s => s,
+                System.Collections.IEnumerable items => string.Join(" ", items.Cast<object>()),
+                var v => v.ToString() ?? "",
+            };
         }
     }
 }
