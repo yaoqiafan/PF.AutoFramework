@@ -164,6 +164,10 @@ PF.SecsGem（独立项目，单独解决方案与安装包）
 3. 现场部署：先装托盘安装包（含服务），再装主程序包；之后服务升级在托盘管理界面完成。
 4. 框架仓库原 `PF.SecsGem.Service` 移入新项目，`AGENTS.md` 的架构图和相关说明同步更新。
 
+进度：
+- 2026-11-22 **MappingShift 已完成**（MotionControl + VisualProcessing）：框架包升到 2.x（Meta 2.1.1）、删除服务副本、`SERVICE_COUNT=0`；安装脚本改为与框架 `Installer\` 同一份（框架同时吸收了 MappingShift 的 `CONFIG_FILE*` 配置目录文件部署，并在发布时强制 `PFLocalDev=false`、支持 `PACKAGE_SOURCE` 追加包源）；现场步骤见 MappingShift `MotionControl\Installer\现场升级说明-框架2.x与SECS服务托盘化.md`。托盘「安装服务」会原地升级项目安装目录下已注册的旧服务并保留 `ProjectName`，首次启动从项目库导入链路配置。
+- 待做：KLT_DualWorkstation、KLT_SingalWorkstation。
+
 ---
 
 ## 8. 管理界面规划（2026-11-19 定）

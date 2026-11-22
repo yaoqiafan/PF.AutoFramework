@@ -8,6 +8,7 @@
 ;   _build\_svc_files.iss   — [Files] 节的服务文件条目
 ;   _build\_svc_uninstall.iss — [UninstallRun] 节的服务卸载命令
 ;   _build\_svc_code.iss    — [Code] 节的服务管理 Pascal 过程
+;   _build\_cfg_files.iss   — [Files] 节的配置目录文件条目（CONFIG_FILE*，如视觉过程/模型）
 ;
 ; 构建方式：运行 build-installer.bat
 ; =============================================================================
@@ -76,6 +77,9 @@ Source: "publish\Shell\*"; \
 
 ; Windows 服务文件（无服务时此文件为空，有服务时每行一个 Source 条目）
 #include "_build\_svc_files.iss"
+
+; 部署到配置目录 D:\PFConfig\PFAutoFrameWork\{ProjectName}\ 的文件（未配置时此文件为空）
+#include "_build\_cfg_files.iss"
 
 ; =============================================================================
 [Icons]

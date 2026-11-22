@@ -14,7 +14,7 @@
       3. Locate / install Inno Setup 6
       4. dotnet publish main app
       5. dotnet publish each Windows service (looped via SERVICE_COUNT)
-      6. Generate four ISS fragment files in _build\
+      6. Generate five ISS fragment files in _build\
       7. Run ISCC to compile the installer
 #>
 
@@ -165,6 +165,36 @@ for ($i = 1; $i -le $serviceCount; $i++) {
     $sSF = if ($sSFRaw) { $sSFRaw.ToLower() } else { '' }
     if ($sSF -notin @('true','false')) {
         Fail "SERVICE${i}_SINGLE_FILE must be 'true' or 'false' (current: '$sSFRaw')"
+    }
+}
+
+# CONFIG_FILE_COUNT: optional (missing = 0) -- files deployed into the config directory
+$configFileCount = 0
+$configFileCountRaw = $env:CONFIG_FILE_COUNT
+if ($configFileCountRaw -and
+    (-not [int]::TryParse($configFileCountRaw, [ref]$configFileCount) -or $configFileCount -lt 0)) {
+    Fail "CONFIG_FILE_COUNT must be a non-negative integer (current: '$configFileCountRaw')"
+}
+
+# Resolve each CONFIG_FILE group now so a missing source fails before the slow publish step.
+# Every matched file is listed explicitly in the generated [Files] fragment.
+$configFileInfos = [System.Collections.Generic.List[object]]::new()
+for ($i = 1; $i -le $configFileCount; $i++) {
+    $cSrcRel = [System.Environment]::GetEnvironmentVariable("CONFIG_FILE${i}_SOURCE")
+    $cDest   = [System.Environment]::GetEnvironmentVariable("CONFIG_FILE${i}_DEST")
+
+    if (-not $cSrcRel) { Fail "CONFIG_FILE${i}_SOURCE is empty" }
+    if (-not $cDest)   { Fail "CONFIG_FILE${i}_DEST is empty" }
+    $cDest = $cDest.Trim('\', '/')
+    if ($cDest -match '(^|[\\/])\.\.([\\/]|$)' -or $cDest -match ':') {
+        Fail "CONFIG_FILE${i}_DEST must be a sub-path of the config directory (current: '$cDest')"
+    }
+
+    $cMatches = @(Get-ChildItem -Path (Join-Path $scriptDir $cSrcRel) -File -ErrorAction SilentlyContinue)
+    if ($cMatches.Count -eq 0) { Fail "CONFIG_FILE${i}_SOURCE matched no files: $cSrcRel" }
+
+    foreach ($f in $cMatches) {
+        $configFileInfos.Add([PSCustomObject]@{ Source = $f.FullName; Dest = $cDest })
     }
 }
 
@@ -338,7 +368,22 @@ Write-Host "  Main exe   : $mainExe"
 Write-Host "  Project    : $projectName   (config dir: D:\PFConfig\PFAutoFrameWork\$projectName\)"
 Write-Host "  RID        : $buildRid  SelfContained=$buildSC"
 Write-Host "  Services   : $serviceCount"
+Write-Host "  Cfg files  : $($configFileInfos.Count)"
+foreach ($cf in $configFileInfos) {
+    Write-Host "               $($cf.Dest)\$(Split-Path $cf.Source -Leaf)"
+}
 Write-Host "================================================================"
+
+# Release builds always consume the framework as NuGet packages. A developer machine may
+# have local-dev.props (PFLocalDev=true -> ProjectReference to the framework source tree);
+# without this switch the installer would silently ship whatever is in that working copy.
+# PACKAGE_SOURCE (optional, installer.conf or environment): extra NuGet source folder/URL,
+# e.g. the framework's local nupkg\ folder when the private feed is unreachable.
+$packageModeArgs = @('-p:PFLocalDev=false')
+if ($env:PACKAGE_SOURCE) {
+    $packageModeArgs += "-p:RestoreAdditionalProjectSources=$($env:PACKAGE_SOURCE)"
+    Write-Host "  Extra package source: $($env:PACKAGE_SOURCE)"
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. Publish main app
@@ -356,7 +401,7 @@ $mainArgs = @(
     '-p:DebugSymbols=false',
     '-o', $shellOut,
     '--nologo', '-v', 'quiet'
-)
+) + $packageModeArgs
 & dotnet @mainArgs
 if ($LASTEXITCODE -ne 0) { Fail "Main app publish failed (exit code $LASTEXITCODE)" }
 Write-Host "       -> publish\Shell\"
@@ -389,7 +434,7 @@ for ($i = 1; $i -le $serviceCount; $i++) {
         '-p:DebugSymbols=false',
         '-o', $svcOut,
         '--nologo', '-v', 'quiet'
-    )
+    ) + $packageModeArgs
     if ($sSF -eq 'true') { $svcArgs += '-p:PublishSingleFile=true' }
 
     & dotnet @svcArgs
@@ -598,10 +643,23 @@ else {
 
 [System.IO.File]::WriteAllText((Join-Path $buildDir '_svc_code.iss'), $svcCode.ToString(), $utf8NoBom)
 
+# ── 8e. _cfg_files.iss ───────────────────────────────────────────────────────
+# [Files] entries deployed into D:\PFConfig\PFAutoFrameWork\{ProjectName}\.
+#   ignoreversion        -> always overwrite: the repository copy is the source of truth
+#   uninsneveruninstall  -> uninstall leaves the config directory alone, like every
+#                           other file there (parameters, recipes, databases)
+$cfgFiles = [System.Text.StringBuilder]::new()
+[void]$cfgFiles.AppendLine('; Auto-generated -- config directory file entries')
+foreach ($cf in $configFileInfos) {
+    [void]$cfgFiles.AppendLine("Source: `"$($cf.Source)`"; DestDir: `"D:\PFConfig\PFAutoFrameWork\{#ProjectName}\$($cf.Dest)`"; Flags: ignoreversion uninsneveruninstall")
+}
+[System.IO.File]::WriteAllText((Join-Path $buildDir '_cfg_files.iss'), $cfgFiles.ToString(), $utf8NoBom)
+
 Write-Host "       -> _build\_config.iss"
 Write-Host "       -> _build\_svc_files.iss"
 Write-Host "       -> _build\_svc_uninstall.iss"
 Write-Host "       -> _build\_svc_code.iss"
+Write-Host "       -> _build\_cfg_files.iss"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 9. Compile installer with ISCC
