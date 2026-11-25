@@ -60,7 +60,7 @@ namespace PF.Modules.Debug.ViewModels
             LogService.Info(
                 $"[轴参数] 用户[{CurrentUserName}] 确认修改轴参数 | " +
                 $"速度:{ParamInstence.Vel} 加速度:{ParamInstence.Acc} 减速度:{ParamInstence.Dec} " +
-                $"定位精度:{ParamInstence.PositioningAccuracy} 回零速度:{ParamInstence.HomeVel} 回零低速倍率:{ParamInstence.HomeLowVelRatio}",
+                $"定位精度:{ParamInstence.PositioningAccuracy} 回零速度:{ParamInstence.HomeVel} 回零低速倍率:{ParamInstence.HomeLowVelRatio} 减速比:{ParamInstence.GearRatio}",
                 "操作日志");
 
             DialogParameters paras = new DialogParameters();
@@ -109,6 +109,7 @@ namespace PF.Modules.Debug.ViewModels
                 LimitPel = model.LimitPel,
                 LimitMel = model.LimitMel,
                 PositioningAccuracy = model.PositioningAccuracy,
+                GearRatio = model.GearRatio,
             };
         }
 
@@ -140,6 +141,7 @@ namespace PF.Modules.Debug.ViewModels
                 LimitPel = viewModel.LimitPel,
                 LimitMel = viewModel.LimitMel,
                 PositioningAccuracy = viewModel.PositioningAccuracy,
+                GearRatio = viewModel.GearRatio,
             };
         }
     }
@@ -193,6 +195,18 @@ namespace PF.Modules.Debug.ViewModels
         {
             get { return _positioningAccuracy; }
             set { SetProperty(ref _positioningAccuracy, value); }
+        }
+
+        private double _gearRatio = 1;
+        /// <summary>获取或设置减速比</summary>
+        [CategoryAttribute("A. 基本运行参数")]
+        [DisplayNameAttribute("5.减速比")]
+        [DescriptionAttribute("电机侧 → 负载侧的传动比（电机转 N 圈、负载侧转 1 圈时为 N），默认 1（直连，不换算）。不为 1 时，轴的位置 / 速度 / 加减速按负载侧单位：下发板卡前乘以本值，读回位置除以本值。板卡的脉冲当量须按电机侧配置；已按负载侧配好的轴保持 1。")]
+        [BrowsableAttribute(true)]
+        public double GearRatio
+        {
+            get { return _gearRatio; }
+            set { SetProperty(ref _gearRatio, value); }
         }
 
         #endregion

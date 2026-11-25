@@ -71,8 +71,17 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>2.1.0</Version>
+		<Version>2.1.1</Version>
 		<PackageReleaseNotes>
+v2.1.1 (2026-11-25) — 轴按减速比换算位置 / 速度 / 加减速（需 PF.Core 2.1.2）
+
+[行为变更 — 仅影响轴参数 GearRatio ≠ 1 的轴]
+- BaseAxisDevice 对外一律为负载侧单位，收发运动控制卡时按减速比换算：下发的位置 / 速度 / 加减速度乘以减速比，读回的位置除以减速比。
+  覆盖 MoveAbsolute / MoveRelative / Jog / Home（回零速度、加减速、偏移）/ PTT 与 PTS 位置表 / CurrentPosition / 软件锁存位置。
+- 不换算：S 段时间、回零低速倍率、硬件锁存位置（辅助编码器自己的倍率）、软限位参数（框架内未使用，项目自行下发板卡时需自己换算）。
+- 减速比为 1 时数值原样进出板卡，现有配置行为不变；≤ 0 / NaN / 无穷按 1 处理并告警（同一取值只告警一次）。
+- ⚠ 板卡的脉冲当量须按电机侧配置；已按负载侧配好脉冲当量的轴保持 1。上机先用小位移核对换算方向。
+
 v2.1.0 (2026-11-20) — SECS 本机通道握手与链路配置下发（需 PF.Core 2.1.0）
 
 [新增 — InternalClient]

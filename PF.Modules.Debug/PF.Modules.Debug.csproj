@@ -11,8 +11,14 @@
 	<PropertyGroup>
 		<IsModuleProject>true</IsModuleProject>
 		<IsPackable>true</IsPackable>
-		<Version>2.0.0</Version>
+		<Version>2.0.1</Version>
 		<PackageReleaseNotes>
+v2.0.1 (2026-11-25) — 轴参数弹窗新增减速比（需 PF.Core 2.1.2）
+
+[新增]
+- 轴参数弹窗「A. 基本运行参数」新增「5.减速比」（AxisParam.GearRatio，默认 1）；确认修改的操作日志记录该值。
+  减速比的换算行为见 PF.Infrastructure 2.1.1。
+
 v2.0.0 (2026-11-19) — PF.AutoFramework 2.0：2026-11 全框架审计修复版
 
 [版本说明]

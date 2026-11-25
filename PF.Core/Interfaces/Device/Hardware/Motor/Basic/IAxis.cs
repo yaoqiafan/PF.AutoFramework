@@ -10,9 +10,13 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
     /// 单轴运动控制器接口，继承自基础硬件设备接口。
     /// </summary>
     /// <remarks>
+    /// 单位约定：轴对外的位置、速度、加减速一律为负载侧工程单位。轴参数 <c>Param.GearRatio</c>（减速比，默认 1）不为 1 时，
+    /// 由轴设备在收发运动控制卡时自行换算，业务代码与点表不感知减速比。
+    /// <para>
     /// 同时实现 <see cref="IEncoderCarrier"/>：<c>EncoderCard</c> 转发到本轴已挂载的 <c>ParentCard</c>，
     /// 使辅助编码器（<c>Encoder.Basic.IAuxEncoder</c>）既能直接挂在运动控制卡下单独使用，
     /// 也能挂在某根轴下随轴分组编排——两条路径最终落到同一块物理板卡。
+    /// </para>
     /// </remarks>
     public interface IAxis : IEncoderCarrier
     {
@@ -43,7 +47,7 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// <summary>轴在系统中的索引号 (如 0, 1, 2...)</summary>
         int AxisIndex { get; }
 
-        /// <summary>当前实时物理位置 (工程单位，如 mm)</summary>
+        /// <summary>当前实时物理位置 (负载侧工程单位，如 mm)</summary>
         double? CurrentPosition { get; }
 
 
@@ -340,5 +344,14 @@ namespace PF.Core.Interfaces.Device.Hardware.Motor.Basic
         /// 轴定位精度
         /// </summary>
         public double PositioningAccuracy { get; set; }
+
+        /// <summary>
+        /// 减速比（电机侧 → 负载侧的传动比）：电机转 N 圈、负载侧转 1 圈时为 N，默认 1（直连，不换算）。
+        /// <para>不为 1 时，轴对外的位置、速度、加减速一律按负载侧单位：轴设备下发板卡前乘以本值，读回位置除以本值；
+        /// S 段时间、回零低速倍率这类时间 / 无量纲量不换算。板卡的脉冲当量要按电机侧配置——已经按负载侧配好脉冲当量的轴，
+        /// 本值保持 1。非法取值（≤ 0 / NaN / 无穷）按 1 处理并记警告。</para>
+        /// <para>升级前的老配置没有这个字段，读出来是默认 1，各数值原样进出板卡，行为与此前一致。</para>
+        /// </summary>
+        public double GearRatio { get; set; } = 1;
     }
 }

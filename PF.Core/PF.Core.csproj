@@ -3,8 +3,15 @@
 
 	<PropertyGroup>
 		<IsPackable>true</IsPackable>
-		<Version>2.1.1</Version>
+		<Version>2.1.2</Version>
 		<PackageReleaseNotes>
+v2.1.2 (2026-11-25) — 轴参数新增减速比
+
+[新增]
+- AxisParam.GearRatio（减速比，默认 1）：电机侧 → 负载侧的传动比。不为 1 时轴按它换算位置 / 速度 / 加减速，
+  实现在 PF.Infrastructure 2.1.1 的 BaseAxisDevice；轴参数弹窗新增「5.减速比」（需 PF.Modules.Debug 2.0.1）。
+  老配置没有这个字段，读出来是默认 1，行为与此前一致。
+
 v2.1.1 (2026-11-22) — SECS 报文文本显示修复
 
 [修复]

@@ -3,8 +3,14 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Version>2.1.1</Version>
+    <Version>2.1.2</Version>
     <PackageReleaseNotes>
+v2.1.2 (2026-11-25) — 轴参数新增减速比
+
+[变更]
+- 依赖升级：PF.Core 2.1.2、PF.Infrastructure 2.1.1、PF.Modules.Debug 2.0.1（轴按减速比换算位置 / 速度 / 加减速，
+  减速比默认 1，现有配置行为不变），其余同 2.1.1。
+
 v2.1.1 (2026-11-22) — SECS 报文文本显示修复
 
 [变更]

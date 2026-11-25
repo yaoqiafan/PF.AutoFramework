@@ -31,6 +31,11 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
     ///     axis.AttachToCard(gogoolCard);
     ///   扩展自定义行为时仍可继承并 override virtual 方法。
     ///
+    /// 单位约定（减速比 AxisParam.GearRatio，默认 1）：
+    ///   · 对外（业务指令 / 点表 / CurrentPosition）的位置、速度、加减速一律是负载侧工程单位；
+    ///   · 收发板卡时按减速比换算：下发的乘、读回的除；时间量（S 段时间）与无量纲量（回零低速倍率）不换算。
+    ///     减速比为 1 时数值原样进出板卡。
+    ///
     /// 点表存储路径：{dataDirectory}/AxisPoints/{DeviceId}.json
     /// </summary>
     public abstract class BaseAxisDevice : AttachedDeviceBase<IMotionCard>, IAxis
@@ -51,6 +56,59 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         // 模拟模式下的虚拟轴位置：由运动指令更新，替代真实板卡的位置反馈，
         // 保证 IsAtPoint / IsInSafePosition 等位置判断在模拟模式下结果确定
         private double _simulatedPosition;
+
+        #region 减速比换算
+
+        // 最近一次告警过的非法减速比及是否已有记录：位置会被高频轮询，同一取值不能反复刷警告
+        private bool _invalidGearRatioWarned;
+        private double _warnedInvalidRatio;
+
+        /// <summary>
+        /// 本次调用使用的减速比换算器：创建时取一次有效减速比，同一条指令里的各个量用同一个值。
+        /// </summary>
+        private GearScale Gear => new(EffectiveGearRatio);
+
+        /// <summary>
+        /// 有效减速比：取正的有限数；否则按 1 处理（不换算），同一取值只告警一次。
+        /// </summary>
+        private double EffectiveGearRatio
+        {
+            get
+            {
+                var ratio = Param?.GearRatio ?? 1;
+                if (ratio > 0 && !double.IsInfinity(ratio))
+                {
+                    return ratio;
+                }
+
+            if (!_invalidGearRatioWarned || !double.Equals(Volatile.Read(ref _warnedInvalidRatio), ratio))
+            {
+                Volatile.Write(ref _warnedInvalidRatio, ratio);
+                _invalidGearRatioWarned = true;
+                _logger?.Warn($"[{DeviceName}] 轴参数减速比 {ratio} 无效（需为大于 0 的有限数），按 1 处理");
+            }
+            return 1;
+            }
+        }
+
+        /// <summary>负载侧与板卡之间的线性换算：板卡值 = 负载侧值 × 减速比</summary>
+        private readonly struct GearScale
+        {
+            private readonly double _ratio;
+
+            public GearScale(double ratio) => _ratio = ratio;
+
+            /// <summary>负载侧（业务指令 / 点表 / 配方）的位置、速度、加减速 → 下发板卡的值</summary>
+            public double ToCard(double value) => value * _ratio;
+
+            /// <summary>板卡位置 → 负载侧</summary>
+            public double FromCard(double value) => value / _ratio;
+
+            /// <summary>位置表整表换算</summary>
+            public double[] ToCard(double[] values) => Array.ConvertAll(values, ToCard);
+        }
+
+        #endregion
 
         #region 板卡挂载
 
@@ -234,14 +292,15 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
         // ── IAxis 轴状态属性（委托给 ParentCard 读取，替代原来的抽象属性）──────────
 
-        /// <summary>当前实时物理位置（工程单位，如 mm）</summary>
+        /// <summary>当前实时物理位置（负载侧工程单位，如 mm）</summary>
         public virtual double? CurrentPosition
         {
             get
             {
                 EnsureCardAttached();
                 if (IsSimulated) { return _simulatedPosition; }
-                return ParentCard!.GetAxisCurrentPosition(AxisIndex);
+                var pos = ParentCard!.GetAxisCurrentPosition(AxisIndex);
+                return pos.HasValue ? Gear.FromCard(pos.Value) : null;
             }
         }
 
@@ -301,7 +360,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition = 0; return true; }
 
-            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)Param.HomeVel, (int)Param.HomeAcc, (int)Param.HomeDec, (int)Param.HomeOffset, Param.HomeLowVelRatio, token).ConfigureAwait(false);
+            // 回零速度 / 加减速 / 偏移是负载侧单位，按减速比换算到板卡；低速倍率是无量纲量，不换算
+            var gear = Gear;
+            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)gear.ToCard(Param.HomeVel), (int)gear.ToCard(Param.HomeAcc), (int)gear.ToCard(Param.HomeDec), (int)gear.ToCard(Param.HomeOffset), Param.HomeLowVelRatio, token).ConfigureAwait(false);
         }
 
         /// <summary>绝对位置定位</summary>
@@ -311,7 +372,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
             if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition = targetPosition; return true; }
 
-            return await ParentCard!.MoveAbsoluteAsync(AxisIndex, targetPosition, velocity, Acc, Dec, STime, token).ConfigureAwait(false);
+            // 位置 / 速度 / 加减速按减速比换算到板卡；S 段时间是时间量，不换算
+            var gear = Gear;
+            return await ParentCard!.MoveAbsoluteAsync(AxisIndex, gear.ToCard(targetPosition), gear.ToCard(velocity), gear.ToCard(Acc), gear.ToCard(Dec), STime, token).ConfigureAwait(false);
         }
 
         /// <summary>相对位置定位</summary>
@@ -320,7 +383,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition += distance; return true; }
 
-            return await ParentCard!.MoveRelativeAsync(AxisIndex, distance, velocity, Acc, Dec, STime, token).ConfigureAwait(false);
+            var gear = Gear;
+            return await ParentCard!.MoveRelativeAsync(AxisIndex, gear.ToCard(distance), gear.ToCard(velocity), gear.ToCard(Acc), gear.ToCard(Dec), STime, token).ConfigureAwait(false);
         }
 
         /// <summary>持续点动（Jog）</summary>
@@ -329,7 +393,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
 
             if (IsSimulated) { await Task.Delay(1000); return true; }
-            return await ParentCard!.JogAsync(AxisIndex, velocity, Acc, Dec, isPositive).ConfigureAwait(false);
+            var gear = Gear;
+            return await ParentCard!.JogAsync(AxisIndex, gear.ToCard(velocity), gear.ToCard(Acc), gear.ToCard(Dec), isPositive).ConfigureAwait(false);
         }
 
 
@@ -388,7 +453,12 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             // 模拟模式返回当前虚拟位置（锁存语义即"捕获触发瞬间的轴位置"），不再返回 0 哨兵值
             if (IsSimulated) { await Task.Delay(1000, token); return _simulatedPosition; }
             if (LatchType == 0)
-                return await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token).ConfigureAwait(false);
+            {
+                // 软件锁存存的是触发瞬间的板卡位置，换算回负载侧；
+                // 硬件锁存走辅助编码器自己的倍率，与本轴减速比无关，不换算
+                var latched = await ParentCard!.GetSoftWareLatchPos(LatchNo, this.AxisIndex, token).ConfigureAwait(false);
+                return latched.HasValue ? Gear.FromCard(latched.Value) : null;
+            }
 
             encoder ??= RequireBoundAuxEncoder();
             return await ParentCard.GetLtcLatchPos(LatchNo, encoder.Channel, encoder.Multiplier, token).ConfigureAwait(false);
@@ -408,7 +478,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return true; }
 
+            // 规划表是负载侧单位；速度只用来推算各段耗时，位置与速度同乘减速比时耗时不变，所以只换算位置表
             var (times, positions) = BuildVelocityProfileTable(targetPosition, standardVelocity, segmentPercents, segmentVelocityPercents);
+            positions = Gear.ToCard(positions);
 
             if (!await ParentCard!.SetPttTableAsync(AxisIndex, times, positions, token).ConfigureAwait(false))
             {
@@ -425,7 +497,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return true; }
 
+            // 规划表是负载侧单位，只换算位置表（原因见 MoveVelocityProfileAsync）
             var (times, positions) = BuildVelocityProfileTable(targetPosition, standardVelocity, segmentPercents, segmentVelocityPercents);
+            positions = Gear.ToCard(positions);
 
             var percents = new double[times.Length];
             for (int i = 1; i < percents.Length; i++)
