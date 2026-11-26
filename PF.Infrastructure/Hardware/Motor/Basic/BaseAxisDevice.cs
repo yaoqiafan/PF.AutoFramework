@@ -59,37 +59,40 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
         #region 减速比换算
 
-        // 最近一次告警过的非法减速比及是否已有记录：位置会被高频轮询，同一取值不能反复刷警告
-        private bool _invalidGearRatioWarned;
-        private double _warnedInvalidRatio;
+        // 最近一次读到的减速比（合法与否都记）：位置会被高频轮询，同一非法取值只告警一次；
+        // 改回合法值后再改成非法值会重新告警。初值 1 与默认减速比一致。多线程读写下最坏是多打一条警告，不影响换算结果
+        private double _lastSeenGearRatio = 1;
 
         /// <summary>
-        /// 本次调用使用的减速比换算器：创建时取一次有效减速比，同一条指令里的各个量用同一个值。
+        /// 本次调用使用的减速比换算器：创建时取一次有效减速比，同一条指令里的各个量用同一个值
+        /// （需要多次换算的指令先取一次 <see cref="Gear"/> 存入局部变量再使用）。
         /// </summary>
         private GearScale Gear => new(EffectiveGearRatio);
 
         /// <summary>
-        /// 有效减速比：取正的有限数；否则按 1 处理（不换算），同一取值只告警一次。
+        /// 有效减速比：取正的有限数；否则按 1 处理（不换算），同一非法取值连续出现只告警一次。
         /// </summary>
         private double EffectiveGearRatio
         {
             get
             {
                 var ratio = Param?.GearRatio ?? 1;
-                if (ratio > 0 && !double.IsInfinity(ratio))
+                var valid = IsValidGearRatio(ratio);
+                var last = Volatile.Read(ref _lastSeenGearRatio);
+                if (!ratio.Equals(last))
                 {
-                    return ratio;
+                    Volatile.Write(ref _lastSeenGearRatio, ratio);
+                    if (!valid)
+                    {
+                        _logger?.Warn($"[{DeviceName}] 轴参数减速比 {ratio} 无效（需为大于 0 的有限数），按 1 处理");
+                    }
                 }
-
-            if (!_invalidGearRatioWarned || !double.Equals(Volatile.Read(ref _warnedInvalidRatio), ratio))
-            {
-                Volatile.Write(ref _warnedInvalidRatio, ratio);
-                _invalidGearRatioWarned = true;
-                _logger?.Warn($"[{DeviceName}] 轴参数减速比 {ratio} 无效（需为大于 0 的有限数），按 1 处理");
-            }
-            return 1;
+                return valid ? ratio : 1;
             }
         }
+
+        /// <summary>减速比是否合法：大于 0 的有限数（NaN 比较恒为 false，同样判为非法）</summary>
+        private static bool IsValidGearRatio(double ratio) => ratio > 0 && !double.IsInfinity(ratio);
 
         /// <summary>负载侧与板卡之间的线性换算：板卡值 = 负载侧值 × 减速比</summary>
         private readonly struct GearScale
@@ -97,6 +100,9 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             private readonly double _ratio;
 
             public GearScale(double ratio) => _ratio = ratio;
+
+            /// <summary>本换算器使用的减速比</summary>
+            public double Ratio => _ratio;
 
             /// <summary>负载侧（业务指令 / 点表 / 配方）的位置、速度、加减速 → 下发板卡的值</summary>
             public double ToCard(double value) => value * _ratio;
@@ -106,6 +112,22 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
 
             /// <summary>位置表整表换算</summary>
             public double[] ToCard(double[] values) => Array.ConvertAll(values, ToCard);
+
+            /// <summary>
+            /// 换算后取整（四舍五入，0.5 远离 0），供只收整数的板卡接口使用。
+            /// 结果超出 int 范围（或为 NaN）时返回 false，由调用方拒绝下发，不截断成错误的值。
+            /// </summary>
+            public bool TryToCardInt(double value, out int result)
+            {
+                var scaled = Math.Round(ToCard(value), MidpointRounding.AwayFromZero);
+                if (double.IsNaN(scaled) || scaled > int.MaxValue || scaled < int.MinValue)
+                {
+                    result = 0;
+                    return false;
+                }
+                result = (int)scaled;
+                return true;
+            }
         }
 
         #endregion
@@ -299,9 +321,15 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             {
                 EnsureCardAttached();
                 if (IsSimulated) { return _simulatedPosition; }
-                var pos = ParentCard!.GetAxisCurrentPosition(AxisIndex);
-                return pos.HasValue ? Gear.FromCard(pos.Value) : null;
+                return ReadCardPosition(Gear);
             }
+        }
+
+        /// <summary>用指定换算器读板卡实际位置并换算到负载侧（需要与后续下发共用同一减速比的场合使用）</summary>
+        private double? ReadCardPosition(GearScale gear)
+        {
+            var pos = ParentCard!.GetAxisCurrentPosition(AxisIndex);
+            return pos.HasValue ? gear.FromCard(pos.Value) : null;
         }
 
 
@@ -360,9 +388,19 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000, token); _simulatedPosition = 0; return true; }
 
-            // 回零速度 / 加减速 / 偏移是负载侧单位，按减速比换算到板卡；低速倍率是无量纲量，不换算
+            // 回零速度 / 加减速 / 偏移是负载侧单位，按减速比换算到板卡；低速倍率是无量纲量，不换算。
+            // 板卡回零接口只收整数：换算后四舍五入（直接强转会截掉小数，小减速比下偏移可能整个丢掉），越界拒绝回零
             var gear = Gear;
-            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, (int)gear.ToCard(Param.HomeVel), (int)gear.ToCard(Param.HomeAcc), (int)gear.ToCard(Param.HomeDec), (int)gear.ToCard(Param.HomeOffset), Param.HomeLowVelRatio, token).ConfigureAwait(false);
+            if (!gear.TryToCardInt(Param.HomeVel, out var homeVel)
+                || !gear.TryToCardInt(Param.HomeAcc, out var homeAcc)
+                || !gear.TryToCardInt(Param.HomeDec, out var homeDec)
+                || !gear.TryToCardInt(Param.HomeOffset, out var homeOffset))
+            {
+                _logger?.Error($"[{DeviceName}] 回零参数按减速比 {gear.Ratio} 换算后超出板卡整数范围，已拒绝回零" +
+                               $"（HomeVel={Param.HomeVel} HomeAcc={Param.HomeAcc} HomeDec={Param.HomeDec} HomeOffset={Param.HomeOffset}）");
+                return false;
+            }
+            return await ParentCard!.HomeAxisAsync(AxisIndex, Param.HomeModel, homeVel, homeAcc, homeDec, homeOffset, Param.HomeLowVelRatio, token).ConfigureAwait(false);
         }
 
         /// <summary>绝对位置定位</summary>
@@ -478,9 +516,11 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return true; }
 
-            // 规划表是负载侧单位；速度只用来推算各段耗时，位置与速度同乘减速比时耗时不变，所以只换算位置表
-            var (times, positions) = BuildVelocityProfileTable(targetPosition, standardVelocity, segmentPercents, segmentVelocityPercents);
-            positions = Gear.ToCard(positions);
+            // 规划表是负载侧单位；速度只用来推算各段耗时，位置与速度同乘减速比时耗时不变，所以只换算位置表。
+            // 读起点与换算位置表共用同一减速比，规划途中改参数也不会前后不一致
+            var gear = Gear;
+            var (times, positions) = BuildVelocityProfileTable(gear, targetPosition, standardVelocity, segmentPercents, segmentVelocityPercents);
+            positions = gear.ToCard(positions);
 
             if (!await ParentCard!.SetPttTableAsync(AxisIndex, times, positions, token).ConfigureAwait(false))
             {
@@ -497,9 +537,10 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
             EnsureCardAttached();
             if (IsSimulated) { await Task.Delay(1000); return true; }
 
-            // 规划表是负载侧单位，只换算位置表（原因见 MoveVelocityProfileAsync）
-            var (times, positions) = BuildVelocityProfileTable(targetPosition, standardVelocity, segmentPercents, segmentVelocityPercents);
-            positions = Gear.ToCard(positions);
+            // 规划表是负载侧单位，只换算位置表；起点与位置表共用同一减速比（原因见 MoveVelocityProfileAsync）
+            var gear = Gear;
+            var (times, positions) = BuildVelocityProfileTable(gear, targetPosition, standardVelocity, segmentPercents, segmentVelocityPercents);
+            positions = gear.ToCard(positions);
 
             var percents = new double[times.Length];
             for (int i = 1; i < percents.Length; i++)
@@ -520,7 +561,7 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
         /// 各段速度 = standardVelocity * segmentVelocityPercents[i] / 100；
         /// 各段耗时 = |段位移| / 段速度；位置表以当前实际位置为 0 点累加，供板卡侧作为相对位移下发。
         /// </summary>
-        private (double[] times, double[] positions) BuildVelocityProfileTable(double targetPosition, double standardVelocity, double[] segmentPercents, double[] segmentVelocityPercents)
+        private (double[] times, double[] positions) BuildVelocityProfileTable(GearScale gear, double targetPosition, double standardVelocity, double[] segmentPercents, double[] segmentVelocityPercents)
         {
             if (segmentPercents == null || segmentVelocityPercents == null
                 || segmentPercents.Length == 0 || segmentPercents.Length != segmentVelocityPercents.Length)
@@ -536,7 +577,8 @@ namespace PF.Infrastructure.Hardware.Motor.Basic
                 throw new ArgumentException($"[{DeviceName}] segmentPercents 总和须为 100，当前为 {segmentPercents.Sum():F2}");
             }
 
-            double? start = CurrentPosition;
+            // 调用方已排除仿真模式，直接读板卡；用传入的换算器而非 CurrentPosition，保证与位置表下发同一减速比
+            double? start = ReadCardPosition(gear);
             if (!start.HasValue)
             {
                 throw new InvalidOperationException($"[{DeviceName}] 无法读取轴当前位置，无法规划速度曲线");

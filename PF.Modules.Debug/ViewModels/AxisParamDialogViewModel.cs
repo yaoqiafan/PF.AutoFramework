@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace PF.Modules.Debug.ViewModels
 {
@@ -56,6 +57,15 @@ namespace PF.Modules.Debug.ViewModels
         {
             if (ParamInstence == null)
                 return;
+
+            // 非法减速比运行时会按 1 处理：界面显示的值与轴实际用的值不一致，现场看不出来，确认前直接拦下
+            var gearRatio = ParamInstence.GearRatio;
+            if (!(gearRatio > 0) || double.IsInfinity(gearRatio))
+            {
+                MessageService.ShowMessage($"减速比 {gearRatio} 无效，需为大于 0 的数（直连填 1）。参数未保存。",
+                    "轴参数", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
             LogService.Info(
                 $"[轴参数] 用户[{CurrentUserName}] 确认修改轴参数 | " +
